@@ -52,6 +52,42 @@ static void debug_tree_helper(tree t, const char *msg)
 #endif
 }
 
+struct name_list {
+    struct name_list *next;
+    char name[0];
+};
+
+static struct name_list dumped_structs;
+
+static bool was_dumped(const char *name)
+{
+    const struct name_list *iter = dumped_structs.next;
+
+    while (NULL != iter) {
+        if (0 == strcmp(name, iter->name)) {
+            return true;
+        }
+        iter = iter->next;
+    }
+
+    return false;
+}
+
+static void add_dumped(const char *name)
+{
+    const size_t len = strlen(name) + 1;
+    struct name_list *n = (struct name_list*)xmalloc(sizeof(*n) + len);
+    memcpy(n->name, name, len);
+
+    struct name_list *iter = &dumped_structs;
+
+    while (NULL != iter->next) {
+        iter = iter->next;
+    }
+
+    iter->next = n;
+}
+
 static void plugin_finish_type(void *event_data, void *user_data)
 {
     tree type = (tree)event_data;
@@ -71,6 +107,10 @@ static void plugin_finish_type(void *event_data, void *user_data)
     // TODO if any of the fields in target_struct references other structs, print them as well.
     if (strcmp(name, target_struct)) {
         // bye
+        return;
+    }
+
+    if (was_dumped(name)) {
         return;
     }
 
@@ -133,6 +173,8 @@ static void plugin_finish_type(void *event_data, void *user_data)
         }
         fprintf(output_file, " %s\n", f_name);
     }
+
+    add_dumped(name);
 
     fflush(output_file);
 }
