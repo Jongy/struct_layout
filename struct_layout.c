@@ -56,80 +56,82 @@ static void plugin_finish_type(void *event_data, void *user_data)
 {
     tree type = (tree)event_data;
 
-    if (TREE_CODE(type) == RECORD_TYPE // it is a struct tree
-        && TYPE_FIELDS(type) != NULL_TREE) // not empty, i.e not a forward declaration.
+    if (TREE_CODE(type) != RECORD_TYPE // it is a struct tree
+        || TYPE_FIELDS(type) == NULL_TREE) // not empty, i.e not a forward declaration.
     {
-        const char *name = ORIG_TYPE_NAME(type);
-        if (NULL == name) {
-            // anonymous, ignore.
-            return;
-        }
+        return;
+    }
 
-        // TODO if any of the fields in target_struct references other structs, print them as well.
-        if (strcmp(name, target_struct)) {
-            // bye
-            return;
-        }
+    const char *name = ORIG_TYPE_NAME(type);
+    if (NULL == name) {
+        // anonymous, ignore.
+        return;
+    }
 
-        for (tree field = TYPE_FIELDS(type); field; field = TREE_CHAIN(field)) {
-            gcc_assert(TREE_CODE(field) == FIELD_DECL);
+    // TODO if any of the fields in target_struct references other structs, print them as well.
+    if (strcmp(name, target_struct)) {
+        // bye
+        return;
+    }
 
-            debug_tree_helper(field, "field");
+    for (tree field = TYPE_FIELDS(type); field; field = TREE_CHAIN(field)) {
+        gcc_assert(TREE_CODE(field) == FIELD_DECL);
 
-            // field name
-            const char *f_name = IDENTIFIER_POINTER(DECL_NAME(field));
-            gcc_assert(NULL != f_name); // shouldn't be NULL, no annonymous decls in a struct.
+        debug_tree_helper(field, "field");
 
-            // field type size
-            tree field_type = TREE_TYPE(field);
-            size_t field_size;
-            size_t elem_size;
+        // field name
+        const char *f_name = IDENTIFIER_POINTER(DECL_NAME(field));
+        gcc_assert(NULL != f_name); // shouldn't be NULL, no annonymous decls in a struct.
 
-            bool is_array = false;
-            // TODO handle arrays recursively
-            if (TREE_CODE(field_type) == ARRAY_TYPE) {
-                is_array = true;
+        // field type size
+        tree field_type = TREE_TYPE(field);
+        size_t field_size;
+        size_t elem_size;
 
-                field_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type)) / 8;
-                field_type = TREE_TYPE(field_type);
-                elem_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type)) / 8;
-            } else {
-                // TODO handle bitfields, where / 8 is wrong.
-                field_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type)) / 8;
-            }
+        bool is_array = false;
+        // TODO handle arrays recursively
+        if (TREE_CODE(field_type) == ARRAY_TYPE) {
+            is_array = true;
 
-            // field type name
-            bool is_pointer = false;
-            // TODO handle pointers recursively
-            if (POINTER_TYPE_P(field_type)) {
-                is_pointer = true;
-
-                field_type = TREE_TYPE(field_type);
-            }
-
-            tree type_name = TYPE_IDENTIFIER(field_type);
-            const char *field_type_name = IDENTIFIER_POINTER(type_name);
-
-            // field offset
-            tree t_offset = DECL_FIELD_OFFSET(field);
-            gcc_assert(TREE_CODE(t_offset) == INTEGER_CST && TREE_CONSTANT(t_offset));
-            int offset = TREE_INT_CST_LOW(t_offset);
-            // add bit offset. there's an explanation about why it's required, see macro declaration in tree.h
-            tree t_bit_offset = DECL_FIELD_BIT_OFFSET(field);
-            gcc_assert(TREE_CODE(t_bit_offset) == INTEGER_CST && TREE_CONSTANT(t_bit_offset));
+            field_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type)) / 8;
+            field_type = TREE_TYPE(field_type);
+            elem_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type)) / 8;
+        } else {
             // TODO handle bitfields, where / 8 is wrong.
-            offset += TREE_INT_CST_LOW(t_bit_offset) / 8;
-
-            fprintf(output_file, "%d %d ", offset, field_size);
-            if (is_array) {
-                fprintf(output_file, "%d %s[]", elem_size, field_type_name);
-            } else if (is_pointer) {
-                fprintf(output_file, "%s *", field_type_name);
-            } else {
-                fprintf(output_file, "%s", field_type_name);
-            }
-            fprintf(output_file, " %s\n", f_name);
+            field_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type)) / 8;
         }
+
+        // field type name
+        bool is_pointer = false;
+        // TODO handle pointers recursively
+        if (POINTER_TYPE_P(field_type)) {
+            is_pointer = true;
+
+            field_type = TREE_TYPE(field_type);
+        }
+
+        tree type_name = TYPE_IDENTIFIER(field_type);
+        const char *field_type_name = IDENTIFIER_POINTER(type_name);
+
+        // field offset
+        tree t_offset = DECL_FIELD_OFFSET(field);
+        gcc_assert(TREE_CODE(t_offset) == INTEGER_CST && TREE_CONSTANT(t_offset));
+        int offset = TREE_INT_CST_LOW(t_offset);
+        // add bit offset. there's an explanation about why it's required, see macro declaration in tree.h
+        tree t_bit_offset = DECL_FIELD_BIT_OFFSET(field);
+        gcc_assert(TREE_CODE(t_bit_offset) == INTEGER_CST && TREE_CONSTANT(t_bit_offset));
+        // TODO handle bitfields, where / 8 is wrong.
+        offset += TREE_INT_CST_LOW(t_bit_offset) / 8;
+
+        fprintf(output_file, "%d %d ", offset, field_size);
+        if (is_array) {
+            fprintf(output_file, "%d %s[]", elem_size, field_type_name);
+        } else if (is_pointer) {
+            fprintf(output_file, "%s *", field_type_name);
+        } else {
+            fprintf(output_file, "%s", field_type_name);
+        }
+        fprintf(output_file, " %s\n", f_name);
     }
 
     fflush(output_file);
