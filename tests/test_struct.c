@@ -8,8 +8,7 @@ struct test_struct {
     unsigned long *third_field;
     float last_field;
 
-    // arrays are broken
-    // char array[1];
+    char my_array[17];
 
     // pointers to pointers are broken
     // void **p;

@@ -81,20 +81,34 @@ static void plugin_finish_type(void *event_data, void *user_data)
             gcc_assert(NULL != f_name); // shouldn't be NULL, no annonymous decls in a struct.
 
             // field type size
-            tree f_type = TREE_TYPE(field);
-            // TODO handle bitfields, where / 8 is wrong.
-            int f_size = TREE_INT_CST_LOW(TYPE_SIZE(f_type)) / 8;
+            tree field_type = TREE_TYPE(field);
+            size_t field_size;
+            size_t elem_size;
+
+            bool is_array = false;
+            // TODO handle arrays recursively
+            if (TREE_CODE(field_type) == ARRAY_TYPE) {
+                is_array = true;
+
+                field_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type)) / 8;
+                field_type = TREE_TYPE(field_type);
+                elem_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type)) / 8;
+            } else {
+                // TODO handle bitfields, where / 8 is wrong.
+                field_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type)) / 8;
+            }
 
             // field type name
             bool is_pointer = false;
             // TODO handle pointers recursively
-            if (POINTER_TYPE_P(f_type)) {
-                f_type = TREE_TYPE(f_type);
+            if (POINTER_TYPE_P(field_type)) {
                 is_pointer = true;
+
+                field_type = TREE_TYPE(field_type);
             }
 
-            tree type_name = TYPE_IDENTIFIER(f_type);
-            const char *f_type_name = IDENTIFIER_POINTER(type_name);
+            tree type_name = TYPE_IDENTIFIER(field_type);
+            const char *field_type_name = IDENTIFIER_POINTER(type_name);
 
             // field offset
             tree t_offset = DECL_FIELD_OFFSET(field);
@@ -106,7 +120,15 @@ static void plugin_finish_type(void *event_data, void *user_data)
             // TODO handle bitfields, where / 8 is wrong.
             offset += TREE_INT_CST_LOW(t_bit_offset) / 8;
 
-            fprintf(output_file, "%d %d %s%s %s\n", offset, f_size, f_type_name, is_pointer ? "*" : "", f_name);
+            fprintf(output_file, "%d %d ", offset, field_size);
+            if (is_array) {
+                fprintf(output_file, "%d %s[]", elem_size, field_type_name);
+            } else if (is_pointer) {
+                fprintf(output_file, "%s *", field_type_name);
+            } else {
+                fprintf(output_file, "%s", field_type_name);
+            }
+            fprintf(output_file, " %s\n", f_name);
         }
     }
 
