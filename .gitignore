@@ -4,3 +4,6 @@ linux/.dummy.*
 linux/Module.symvers
 linux/modules.order
 linux/layout.txt
+
+struct_layout.so
+test_struct.o
