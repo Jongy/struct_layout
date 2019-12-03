@@ -1,0 +1,6 @@
+# linux module leftovers
+linux/dummy.*
+linux/.dummy.*
+linux/Module.symvers
+linux/modules.order
+linux/layout.txt
