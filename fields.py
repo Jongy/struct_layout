@@ -5,9 +5,9 @@ class Field(object):
         self.total_size = total_size
 
 
-class Scalar(Field):
+class Basic(Field):
     def __init__(self, name, offset, total_size, type_):
-        super(Scalar, self).__init__(name, offset, total_size)
+        super(Basic, self).__init__(name, offset, total_size)
         self.type = type_
 
 

@@ -45,7 +45,7 @@ static const char *target_struct = NULL;
 static void debug_tree_helper(tree t, const char *msg)
 {
 #ifndef NDEBUG
-    printf("!!!!!!!! %s\n", msg);
+    printf("dumping tree: '%s'\n", msg);
     debug_tree(t);
     printf("\n\n");
     fflush(stdout);
@@ -88,15 +88,41 @@ static void add_dumped(const char *name)
     iter->next = n;
 }
 
-// allowed inner types for array elemented and pointees
-static bool is_allowed_inner_type(tree type)
+// types that don't have another type beneath them.
+static bool is_basic_type(tree type)
 {
     switch (TREE_CODE(type)) {
     case INTEGER_TYPE:
+    case REAL_TYPE:
+    case RECORD_TYPE:
+    case UNION_TYPE:
+    case VOID_TYPE:
         return true;
 
     default:
         return false;
+    }
+}
+
+static void print_array_type(const tree field_type, const char *field_name, size_t offset, size_t sizeof_array)
+{
+    const size_t num_elem = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(field_type));
+
+    fprintf(output_file, "Array('%s', %d, %d, %d, ", field_name, offset, sizeof_array, num_elem);
+}
+
+static void print_pointer_type(const char *field_name, size_t offset, size_t size)
+{
+    fprintf(output_file, "Pointer('%s', %d, %d, ", field_name, offset, size);
+}
+
+// returns 0 if type has no size (i.e VOID_TYPE)
+static size_t get_field_size(const tree field_type)
+{
+    if (TYPE_SIZE(field_type)) {
+        return TREE_INT_CST_LOW(TYPE_SIZE(field_type));
+    } else {
+        return 0;
     }
 }
 
@@ -146,36 +172,6 @@ static void plugin_finish_type(void *event_data, void *user_data)
         size_t elem_size;
         size_t num_elem;
 
-        const char *field_class = "Scalar";
-
-        // TODO handle arrays recursively?
-        if (TREE_CODE(field_type) == ARRAY_TYPE) {
-            field_class = "Array";
-
-            // that's the total size
-            field_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type));
-            num_elem = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(field_type));
-
-            field_type = TREE_TYPE(field_type);
-            gcc_assert(is_allowed_inner_type(field_type));
-
-            elem_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type));
-        } else {
-            field_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type));
-        }
-
-        // field type name
-        // TODO handle pointers recursively?
-        if (POINTER_TYPE_P(field_type)) {
-            field_class = "Pointer";
-
-            field_type = TREE_TYPE(field_type);
-            gcc_assert(is_allowed_inner_type(field_type));
-        }
-
-        tree type_name = TYPE_IDENTIFIER(field_type);
-        const char *field_type_name = IDENTIFIER_POINTER(type_name);
-
         // field offset
         tree t_offset = DECL_FIELD_OFFSET(field);
         gcc_assert(TREE_CODE(t_offset) == INTEGER_CST && TREE_CONSTANT(t_offset));
@@ -185,14 +181,46 @@ static void plugin_finish_type(void *event_data, void *user_data)
         gcc_assert(TREE_CODE(t_bit_offset) == INTEGER_CST && TREE_CONSTANT(t_bit_offset));
         offset += TREE_INT_CST_LOW(t_bit_offset);
 
-        fprintf(output_file, "\t%s('%s', %d, %d", field_class, field_name, offset, field_size);
-        if (0 == strcmp(field_class, "Array")) {
-            fprintf(output_file, ", %d, '%s'", num_elem, field_type_name);
-        } else if (0 == strcmp(field_class, "Pointer") || 0 == strcmp(field_class, "Scalar")) {
-            fprintf(output_file, ", '%s'", field_type_name);
-        } else {
-            gcc_unreachable();
+        size_t type_depth = 0;
+
+        fprintf(output_file, "\t");
+
+        // handle arrays and pointers, until we reach a "basic" type.
+        while (!is_basic_type(field_type)) {
+            const size_t field_type_size = get_field_size(field_type);
+
+            switch (TREE_CODE(field_type)) {
+            case ARRAY_TYPE:
+                print_array_type(field_type, field_name, offset, field_type_size);
+                break;
+
+            case POINTER_TYPE:
+            case REFERENCE_TYPE: // POINTER_TYPE_P checks for this as well. let's try to be c++ compatible.
+                print_pointer_type(field_name, offset, field_type_size);
+                break;
+
+            default:
+                debug_tree_helper(field_type, "unknown type!");
+                gcc_unreachable();
+            }
+
+            // next
+            field_type = TREE_TYPE(field_type);
+
+            ++type_depth;
         }
+
+        tree type_name = TYPE_IDENTIFIER(field_type);
+        const char *field_type_name = IDENTIFIER_POINTER(type_name);
+
+        field_size = get_field_size(field_type);
+
+        fprintf(output_file, "Basic('%s', %d, %d, '%s')", field_name, offset, field_size, field_type_name);
+
+        for (size_t i = 0; i < type_depth; ++i) {
+            fprintf(output_file, ")");
+        }
+
         fprintf(output_file, "),\n");
     }
 
