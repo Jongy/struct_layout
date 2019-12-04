@@ -88,6 +88,18 @@ static void add_dumped(const char *name)
     iter->next = n;
 }
 
+// allowed inner types for array elemented and pointees
+static bool is_allowed_inner_type(tree type)
+{
+    switch (TREE_CODE(type)) {
+    case INTEGER_TYPE:
+        return true;
+
+    default:
+        return false;
+    }
+}
+
 static void plugin_finish_type(void *event_data, void *user_data)
 {
     tree type = (tree)event_data;
@@ -113,6 +125,11 @@ static void plugin_finish_type(void *event_data, void *user_data)
     if (was_dumped(name)) {
         return;
     }
+    // add it immediately, so if we find any back references into current struct, we don't
+    // dump it again.
+    add_dumped(name);
+
+    fprintf(output_file, "%s = [\n", name);
 
     for (tree field = TYPE_FIELDS(type); field; field = TREE_CHAIN(field)) {
         gcc_assert(TREE_CODE(field) == FIELD_DECL);
@@ -120,34 +137,40 @@ static void plugin_finish_type(void *event_data, void *user_data)
         debug_tree_helper(field, "field");
 
         // field name
-        const char *f_name = IDENTIFIER_POINTER(DECL_NAME(field));
-        gcc_assert(NULL != f_name); // shouldn't be NULL, no annonymous decls in a struct.
+        const char *field_name = IDENTIFIER_POINTER(DECL_NAME(field));
+        gcc_assert(NULL != field_name); // shouldn't be NULL, no annonymous decls in a struct.
 
         // field type size
         tree field_type = TREE_TYPE(field);
         size_t field_size;
         size_t elem_size;
+        size_t num_elem;
 
-        bool is_array = false;
-        // TODO handle arrays recursively
+        const char *field_class = "Scalar";
+
+        // TODO handle arrays recursively?
         if (TREE_CODE(field_type) == ARRAY_TYPE) {
-            is_array = true;
+            field_class = "Array";
 
-            field_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type)) / 8;
+            // that's the total size
+            field_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type));
+            num_elem = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(field_type));
+
             field_type = TREE_TYPE(field_type);
-            elem_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type)) / 8;
+            gcc_assert(is_allowed_inner_type(field_type));
+
+            elem_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type));
         } else {
-            // TODO handle bitfields, where / 8 is wrong.
-            field_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type)) / 8;
+            field_size = TREE_INT_CST_LOW(TYPE_SIZE(field_type));
         }
 
         // field type name
-        bool is_pointer = false;
-        // TODO handle pointers recursively
+        // TODO handle pointers recursively?
         if (POINTER_TYPE_P(field_type)) {
-            is_pointer = true;
+            field_class = "Pointer";
 
             field_type = TREE_TYPE(field_type);
+            gcc_assert(is_allowed_inner_type(field_type));
         }
 
         tree type_name = TYPE_IDENTIFIER(field_type);
@@ -160,21 +183,20 @@ static void plugin_finish_type(void *event_data, void *user_data)
         // add bit offset. there's an explanation about why it's required, see macro declaration in tree.h
         tree t_bit_offset = DECL_FIELD_BIT_OFFSET(field);
         gcc_assert(TREE_CODE(t_bit_offset) == INTEGER_CST && TREE_CONSTANT(t_bit_offset));
-        // TODO handle bitfields, where / 8 is wrong.
-        offset += TREE_INT_CST_LOW(t_bit_offset) / 8;
+        offset += TREE_INT_CST_LOW(t_bit_offset);
 
-        fprintf(output_file, "%d %d ", offset, field_size);
-        if (is_array) {
-            fprintf(output_file, "%d %s[]", elem_size, field_type_name);
-        } else if (is_pointer) {
-            fprintf(output_file, "%s *", field_type_name);
+        fprintf(output_file, "\t%s('%s', %d, %d", field_class, field_name, offset, field_size);
+        if (0 == strcmp(field_class, "Array")) {
+            fprintf(output_file, ", %d, '%s'", num_elem, field_type_name);
+        } else if (0 == strcmp(field_class, "Pointer") || 0 == strcmp(field_class, "Scalar")) {
+            fprintf(output_file, ", '%s'", field_type_name);
         } else {
-            fprintf(output_file, "%s", field_type_name);
+            gcc_unreachable();
         }
-        fprintf(output_file, " %s\n", f_name);
+        fprintf(output_file, "),\n");
     }
 
-    add_dumped(name);
+    fprintf(output_file, "]\n");
 
     fflush(output_file);
 }
