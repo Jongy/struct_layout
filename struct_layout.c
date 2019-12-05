@@ -187,6 +187,8 @@ static void dump_struct(const_tree base_type, const char *name, size_t indent_le
         fprintf(output_file, "%s = ", name);
     }
 
+    gcc_assert(COMPLETE_TYPE_P(base_type));
+
     gcc_assert(is_struct_or_union(base_type));
     fprintf(output_file, "%s(", RECORD_TYPE == TREE_CODE(base_type) ? "Struct" : "Union");
     if (NULL != name) {
@@ -335,18 +337,21 @@ static void plugin_finish_type(void *event_data, void *user_data)
     }
 
     dump_struct(type, name, 0);
+}
 
+static void plugin_finish(void *event_data, void *user_data)
+{
     // all leftovers
     for (struct list *iter = to_dump.list.next; iter != NULL; iter = iter->next) {
         struct dump_list *n = container_of(iter, struct dump_list, list);
 
-        dump_struct(n->type, ORIG_TYPE_NAME(n->type), 0);
+        // if it's not complete by now, it must've had references only as a pointer
+        // w/ a forward declaration.
+        // (by the time a struct field is declared, the type must be complete)
+        if (COMPLETE_TYPE_P(n->type)) {
+            dump_struct(n->type, ORIG_TYPE_NAME(n->type), 0);
+        }
     }
-
-    fflush(output_file);
-
-    // technically, by this point we're done. any struct / type referenced by our target struct
-    // was already dumped as well.
 
     fprintf(output_file, "# dumped structs:\n");
 
@@ -357,6 +362,8 @@ static void plugin_finish_type(void *event_data, void *user_data)
         fprintf(output_file, "# %s\n", n->name);
         iter = iter->next;
     }
+
+    fflush(output_file);
 }
 
 int plugin_init(struct plugin_name_args *plugin_info, struct plugin_gcc_version *version)
@@ -389,6 +396,7 @@ int plugin_init(struct plugin_name_args *plugin_info, struct plugin_gcc_version 
     }
 
     register_callback(plugin_info->base_name, PLUGIN_FINISH_TYPE, plugin_finish_type, NULL);
+    register_callback(plugin_info->base_name, PLUGIN_FINISH, plugin_finish, NULL);
 
     return 0;
 }
