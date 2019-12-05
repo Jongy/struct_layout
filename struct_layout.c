@@ -209,8 +209,14 @@ static void plugin_finish_type(void *event_data, void *user_data)
             ++type_depth;
         }
 
+        // TODO handle anonymous types better.
+        // I think it in this case it'd be the best if we just print the type directly,
+        // instead of its name.
+        const char *field_type_name = "";
         tree type_name = TYPE_IDENTIFIER(field_type);
-        const char *field_type_name = IDENTIFIER_POINTER(type_name);
+        if (NULL != type_name) {
+            field_type_name = IDENTIFIER_POINTER(type_name);
+        }
 
         field_size = get_field_size(field_type);
 
