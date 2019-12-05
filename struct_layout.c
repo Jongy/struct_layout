@@ -98,6 +98,7 @@ static bool is_basic_type(tree type)
     case RECORD_TYPE:
     case UNION_TYPE:
     case VOID_TYPE:
+    case FUNCTION_TYPE:
         return true;
 
     default:
@@ -221,7 +222,12 @@ static void plugin_finish_type(void *event_data, void *user_data)
 
         field_size = get_field_size(field_type);
 
-        fprintf(output_file, "Basic(%zu, '%s')", field_size, field_type_name);
+        const char *field_class = "Basic";
+        if (TREE_CODE(field_type) == FUNCTION_TYPE) {
+            field_class = "Function";
+        }
+
+        fprintf(output_file, "%s(%zu, '%s')", field_class, field_size, field_type_name);
 
         for (size_t i = 0; i < type_depth; ++i) {
             fprintf(output_file, ")");

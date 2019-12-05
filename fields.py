@@ -21,6 +21,11 @@ class Basic(Type):
         return self.type == other.type and super(Basic, self).__eq__(other)
 
 
+class Function(Basic):
+    def __init__(self, total_size, type_):
+        super(Function, self).__init__(total_size, type_)
+
+
 class Pointer(Type):
     def __init__(self, total_size, pointed_type):
         super(Pointer, self).__init__(total_size)
