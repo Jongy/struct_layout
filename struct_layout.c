@@ -227,6 +227,9 @@ static void dump_struct(const_tree type, const char *name)
 
         if (TREE_CODE(field_type) == VOID_TYPE) {
             fprintf(output_file, "Void()");
+        } else if (DECL_BIT_FIELD(field)) {
+            // bitfields TREE_TYPE has no TYPE_IDENTIFIER.
+            fprintf(output_file, "Bitfield(%ld)", TREE_INT_CST_LOW(DECL_SIZE(field)));
         } else {
             const char *field_class;
             if (TREE_CODE(field_type) == FUNCTION_TYPE) {

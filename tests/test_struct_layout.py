@@ -2,7 +2,7 @@ import os.path
 import subprocess
 import tempfile
 
-from ..fields import Basic, Pointer, Array, Void, Struct, Union
+from ..fields import Basic, Bitfield, Pointer, Array, Void, Struct, Union
 
 
 STRUCT_LAYOUT_SO = os.path.abspath(
@@ -23,7 +23,8 @@ def dump_struct_layout(struct_code, struct_name):
 
         run_gcc(tf1.name, tf2.name, struct_name)
 
-        load_globals = {"Basic": Basic, "Void": Void, "Struct": Struct, "Union": Union,
+        load_globals = {"Basic": Basic, "Bitfield": Bitfield, "Void": Void,
+                        "Struct": Struct, "Union": Union,
                         "Pointer": Pointer, "Array": Array}
         struct_def = tf2.read()
         print(struct_def)  # for debugging
@@ -107,3 +108,13 @@ def test_struct_dump_only_necessary():
     assert b["y"] == (0, Basic(32, "int"))
 
     assert "a" not in decls
+
+
+def test_struct_bitfields():
+    x = dump_struct_layout("struct x { int bf1: 3; int bf2: 1; int n; int bf3: 29; };", "x")["x"]
+
+    assert len(x.keys()) == 4
+    assert x["bf1"] == (0, Bitfield(3))
+    assert x["bf2"] == (3, Bitfield(1))
+    assert x["n"] == (32, Basic(32, "int"))
+    assert x["bf3"] == (64, Bitfield(29))

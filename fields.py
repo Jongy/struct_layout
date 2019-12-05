@@ -20,6 +20,17 @@ class Void(Type):
         return super(Void, self).__eq__(other)
 
 
+class Bitfield(Type):
+    def __init__(self, total_size):
+        super(Bitfield, self).__init__(total_size)
+
+    def __eq__(self, other):
+        if not isinstance(other, Bitfield):
+            return NotImplemented
+
+        return super(Bitfield, self).__eq__(other)
+
+
 class Basic(Type):
     def __init__(self, total_size, type_):
         super(Basic, self).__init__(total_size)

@@ -22,4 +22,9 @@ struct test_struct {
     union my_union u;
 
     int twodim[3][2];
+
+    char bitfield1: 1;
+    char bitfield2: 5;
+    int between_bitfields;
+    int bitfield3: 2;
 };
