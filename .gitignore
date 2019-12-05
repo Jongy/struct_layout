@@ -7,3 +7,5 @@ linux/layout.txt
 
 struct_layout.so
 test_struct.o
+
+__pycache__
