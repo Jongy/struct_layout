@@ -77,6 +77,7 @@ static void add_dumped(const char *name)
 {
     const size_t len = strlen(name) + 1;
     struct name_list *n = (struct name_list*)xmalloc(sizeof(*n) + len);
+    n->next = NULL;
     memcpy(n->name, name, len);
 
     struct name_list *iter = &dumped_structs;
@@ -129,28 +130,13 @@ static size_t get_field_size(const tree field_type)
     }
 }
 
-static void plugin_finish_type(void *event_data, void *user_data)
+static void print_struct_ending(bool multi_part)
 {
-    tree type = (tree)event_data;
+    fprintf(output_file, multi_part ? "})\n" : "}\n");
+}
 
-    if (TREE_CODE(type) != RECORD_TYPE // it is a struct tree
-        || TYPE_FIELDS(type) == NULL_TREE) // not empty, i.e not a forward declaration.
-    {
-        return;
-    }
-
-    const char *name = ORIG_TYPE_NAME(type);
-    if (NULL == name) {
-        // anonymous, ignore.
-        return;
-    }
-
-    // TODO if any of the fields in target_struct references other structs, print them as well.
-    if (strcmp(name, target_struct)) {
-        // bye
-        return;
-    }
-
+static void dump_struct(const_tree type, const char *name)
+{
     if (was_dumped(name)) {
         return;
     }
@@ -159,6 +145,7 @@ static void plugin_finish_type(void *event_data, void *user_data)
     add_dumped(name);
 
     fprintf(output_file, "%s = {\n", name);
+    bool multi_part = false;
 
     for (tree field = TYPE_FIELDS(type); field; field = TREE_CHAIN(field)) {
         gcc_assert(TREE_CODE(field) == FIELD_DECL);
@@ -170,12 +157,23 @@ static void plugin_finish_type(void *event_data, void *user_data)
         // field name
         const char *field_name;
         const_tree decl = DECL_NAME(field);
+        bool anonymous = false;
         if (NULL != decl) {
             field_name = IDENTIFIER_POINTER(decl);
         } else {
             // shouldn't be NULL, only allowed for anonymous unions.
             gcc_assert(UNION_TYPE == TREE_CODE(field_type));
             field_name = "(anonymous union)";
+            anonymous = true;
+        }
+
+        // is it another struct / union?
+        if (TREE_CODE(field_type) == RECORD_TYPE || (TREE_CODE(field_type) == UNION_TYPE && !anonymous)) {
+            // dump it as well, if not anonymous.
+            print_struct_ending(multi_part);
+            dump_struct(field_type, ORIG_TYPE_NAME(field_type));
+            fprintf(output_file, "%s.update({\n", name);
+            multi_part = true; // from now on.
         }
 
         // field offset
@@ -251,9 +249,43 @@ static void plugin_finish_type(void *event_data, void *user_data)
         fprintf(output_file, "),\n");
     }
 
-    fprintf(output_file, "}\n");
+    print_struct_ending(multi_part);
 
     fflush(output_file);
+}
+
+static void plugin_finish_type(void *event_data, void *user_data)
+{
+    tree type = (tree)event_data;
+
+    if (TREE_CODE(type) != RECORD_TYPE // it is a struct tree
+        || TYPE_FIELDS(type) == NULL_TREE) // not empty, i.e not a forward declaration.
+    {
+        return;
+    }
+
+    const char *name = ORIG_TYPE_NAME(type);
+    if (NULL == name) {
+        // anonymous, ignore.
+        return;
+    }
+    if (strcmp(name, target_struct)) {
+        // bye
+        return;
+    }
+
+    dump_struct(type, name);
+
+    // technically, by this point we're done. any struct / type referenced by our target struct
+    // was already dumped as well.
+
+    fprintf(output_file, "# dumped structs:\n");
+
+    struct name_list *iter = dumped_structs.next;
+    while (NULL != iter) {
+        fprintf(output_file, "# %s\n", iter->name);
+        iter = iter->next;
+    }
 }
 
 int plugin_init(struct plugin_name_args *plugin_info, struct plugin_gcc_version *version)
