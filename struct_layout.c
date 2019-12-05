@@ -42,6 +42,11 @@ static const char *target_struct = NULL;
 #define ORIG_TYPE_NAME(node) \
     (TYPE_NAME(TYPE_MAIN_VARIANT(node)) != NULL_TREE ? ((const char *)IDENTIFIER_POINTER(TYPE_NAME(TYPE_MAIN_VARIANT(node)))) : NULL)
 
+// from linux
+#define container_of(ptr, type, member) ({                      \
+    const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
+    (type *)( (char *)__mptr - offsetof(type,member) );})
+
 static void debug_tree_helper(tree t, const char *msg)
 {
 #ifndef NDEBUG
@@ -52,19 +57,34 @@ static void debug_tree_helper(tree t, const char *msg)
 #endif
 }
 
-struct name_list {
-    struct name_list *next;
+// sadly GCC doesn't have any nice list API. probably because you're just supposed
+// to use C++.
+struct list {
+    struct list *next;
+};
+
+struct dumped_list {
+    struct list list;
     char name[0];
 };
 
-static struct name_list dumped_structs;
+static struct dumped_list dumped_structs;
+
+struct dump_list {
+    struct list list;
+    tree type;
+};
+
+static struct dump_list to_dump;
 
 static bool was_dumped(const char *name)
 {
-    const struct name_list *iter = dumped_structs.next;
+    struct list *iter = dumped_structs.list.next;
 
     while (NULL != iter) {
-        if (0 == strcmp(name, iter->name)) {
+        struct dumped_list *n = container_of(iter, struct dumped_list, list);
+
+        if (0 == strcmp(name, n->name)) {
             return true;
         }
         iter = iter->next;
@@ -73,20 +93,32 @@ static bool was_dumped(const char *name)
     return false;
 }
 
-static void add_dumped(const char *name)
+static void add_to_list(struct list *iter, struct list *n)
 {
-    const size_t len = strlen(name) + 1;
-    struct name_list *n = (struct name_list*)xmalloc(sizeof(*n) + len);
-    n->next = NULL;
-    memcpy(n->name, name, len);
-
-    struct name_list *iter = &dumped_structs;
-
     while (NULL != iter->next) {
         iter = iter->next;
     }
 
     iter->next = n;
+}
+
+static void add_to_dumped_structs(const char *name)
+{
+    const size_t len = strlen(name) + 1;
+    struct dumped_list *n = (struct dumped_list*)xmalloc(sizeof(*n) + len);
+    n->list.next = NULL;
+    memcpy(n->name, name, len);
+
+    add_to_list(&dumped_structs.list, &n->list);
+}
+
+static void add_to_dump_list(tree type)
+{
+    struct dump_list *n = (struct dump_list*)xmalloc(sizeof(*n));
+    n->list.next = NULL;
+    n->type = type;
+
+    add_to_list(&to_dump.list, &n->list);
 }
 
 // types that don't have another type beneath them.
@@ -130,11 +162,6 @@ static size_t get_field_size(const tree field_type)
     }
 }
 
-static void print_struct_ending(bool multi_part)
-{
-    fprintf(output_file, multi_part ? "})\n" : "}\n");
-}
-
 static void dump_struct(const_tree type, const char *name)
 {
     if (was_dumped(name)) {
@@ -142,10 +169,9 @@ static void dump_struct(const_tree type, const char *name)
     }
     // add it immediately, so if we find any back references into current struct, we don't
     // dump it again.
-    add_dumped(name);
+    add_to_dumped_structs(name);
 
     fprintf(output_file, "%s = {\n", name);
-    bool multi_part = false;
 
     for (tree field = TYPE_FIELDS(type); field; field = TREE_CHAIN(field)) {
         gcc_assert(TREE_CODE(field) == FIELD_DECL);
@@ -170,10 +196,9 @@ static void dump_struct(const_tree type, const char *name)
         // is it another struct / union?
         if (TREE_CODE(field_type) == RECORD_TYPE || (TREE_CODE(field_type) == UNION_TYPE && !anonymous)) {
             // dump it as well, if not anonymous.
-            print_struct_ending(multi_part);
-            dump_struct(field_type, ORIG_TYPE_NAME(field_type));
-            fprintf(output_file, "%s.update({\n", name);
-            multi_part = true; // from now on.
+
+            // I assume that "tree" objects are alive basically forever.
+            add_to_dump_list(field_type);
         }
 
         // field offset
@@ -252,7 +277,13 @@ static void dump_struct(const_tree type, const char *name)
         fprintf(output_file, "),\n");
     }
 
-    print_struct_ending(multi_part);
+    fprintf(output_file, "}\n");
+
+    for (struct list *iter = to_dump.list.next; iter != NULL; iter = iter->next) {
+        struct dump_list *n = container_of(iter, struct dump_list, list);
+
+        dump_struct(n->type, ORIG_TYPE_NAME(n->type));
+    }
 
     fflush(output_file);
 }
@@ -284,9 +315,11 @@ static void plugin_finish_type(void *event_data, void *user_data)
 
     fprintf(output_file, "# dumped structs:\n");
 
-    struct name_list *iter = dumped_structs.next;
+    struct list *iter = dumped_structs.list.next;
     while (NULL != iter) {
-        fprintf(output_file, "# %s\n", iter->name);
+        struct dumped_list *n = container_of(iter, struct dumped_list, list);
+
+        fprintf(output_file, "# %s\n", n->name);
         iter = iter->next;
     }
 }
