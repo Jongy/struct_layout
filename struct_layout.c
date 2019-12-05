@@ -162,7 +162,19 @@ static size_t get_field_size(const tree field_type)
     }
 }
 
-static void dump_struct(const_tree type, const char *name)
+static bool is_struct_or_union(const_tree type)
+{
+    return RECORD_TYPE == TREE_CODE(type) || UNION_TYPE == TREE_CODE(type);
+}
+
+static void print_spaces(size_t n)
+{
+    for (size_t i = 0; i < n; ++i) {
+        fputc(' ', output_file);
+    }
+}
+
+static void dump_struct(const_tree base_type, const char *name, size_t indent_level)
 {
     if (NULL != name) {
         if (was_dumped(name)) {
@@ -175,16 +187,16 @@ static void dump_struct(const_tree type, const char *name)
         fprintf(output_file, "%s = ", name);
     }
 
-    gcc_assert(RECORD_TYPE == TREE_CODE(type) || UNION_TYPE == TREE_CODE(type));
-    fprintf(output_file, "%s(", RECORD_TYPE == TREE_CODE(type) ? "Struct" : "Union");
+    gcc_assert(is_struct_or_union(base_type));
+    fprintf(output_file, "%s(", RECORD_TYPE == TREE_CODE(base_type) ? "Struct" : "Union");
     if (NULL != name) {
         fprintf(output_file, "'%s'", name);
     } else {
         fprintf(output_file, "None");
     }
-    fprintf(output_file, ", %ld, {\n", TREE_INT_CST_LOW(TYPE_SIZE(type)));
+    fprintf(output_file, ", %ld, {\n", TREE_INT_CST_LOW(TYPE_SIZE(base_type)));
 
-    for (tree field = TYPE_FIELDS(type); field; field = TREE_CHAIN(field)) {
+    for (tree field = TYPE_FIELDS(base_type); field; field = TREE_CHAIN(field)) {
         gcc_assert(TREE_CODE(field) == FIELD_DECL);
 
         debug_tree_helper(field, "field");
@@ -193,23 +205,15 @@ static void dump_struct(const_tree type, const char *name)
 
         // field name
         const char *field_name;
-        const_tree decl = DECL_NAME(field);
+        const_tree decl_name = DECL_NAME(field);
         bool anonymous = false;
-        if (NULL != decl) {
-            field_name = IDENTIFIER_POINTER(decl);
+        if (NULL != decl_name) {
+            field_name = IDENTIFIER_POINTER(decl_name);
         } else {
             // shouldn't be NULL, only allowed for anonymous unions.
             gcc_assert(UNION_TYPE == TREE_CODE(field_type));
             field_name = "(anonymous union)";
             anonymous = true;
-        }
-
-        // is it another struct / union?
-        if (TREE_CODE(field_type) == RECORD_TYPE || (TREE_CODE(field_type) == UNION_TYPE && !anonymous)) {
-            // dump it as well, if not anonymous.
-
-            // I assume that "tree" objects are alive basically forever.
-            add_to_dump_list(field_type);
         }
 
         // field offset
@@ -221,7 +225,8 @@ static void dump_struct(const_tree type, const char *name)
         gcc_assert(TREE_CODE(t_bit_offset) == INTEGER_CST && TREE_CONSTANT(t_bit_offset));
         offset += TREE_INT_CST_LOW(t_bit_offset);
 
-        fprintf(output_file, "    '%s': (%zu, ", field_name, offset);
+        print_spaces((indent_level + 1) * 4);
+        fprintf(output_file, "'%s': (%zu, ", field_name, offset);
 
         size_t type_depth = 0;
 
@@ -250,35 +255,44 @@ static void dump_struct(const_tree type, const char *name)
             ++type_depth;
         }
 
-        // TODO handle anonymous types better.
-        // I think it in this case it'd be the best if we just print the type directly,
-        // instead of its name.
-        const char *field_type_name = "";
-        tree type_name = TYPE_IDENTIFIER(field_type);
-        if (NULL != type_name) {
-            field_type_name = IDENTIFIER_POINTER(type_name);
-        }
-
         const size_t field_size = get_field_size(field_type);
 
-        if (TREE_CODE(field_type) == VOID_TYPE) {
-            fprintf(output_file, "Void()");
-        } else if (DECL_BIT_FIELD(field)) {
-            // bitfields TREE_TYPE has no TYPE_IDENTIFIER.
-            fprintf(output_file, "Bitfield(%ld)", TREE_INT_CST_LOW(DECL_SIZE(field)));
+        tree type_name = TYPE_IDENTIFIER(field_type);
+        if (NULL == type_name && is_struct_or_union(field_type)) {
+            // anonymous definition of struct/union, just dump it.
+            fprintf(output_file, "StructField(%zu, ", field_size);
+            dump_struct(field_type, NULL, indent_level + 1);
+            fprintf(output_file, ")");
         } else {
-            const char *field_class;
-            if (TREE_CODE(field_type) == FUNCTION_TYPE) {
-                field_class = "Function";
-            } else if (TREE_CODE(field_type) == RECORD_TYPE) {
-                field_class = "StructField";
-            } else if (TREE_CODE(field_type) == UNION_TYPE) {
-                field_class = "UnionField";
-            } else {
-                field_class = "Scalar";
+            // is it another struct / union?
+            if (TREE_CODE(field_type) == RECORD_TYPE || (TREE_CODE(field_type) == UNION_TYPE && !anonymous)) {
+                // add to dump list, if not anonymous.
+
+                // I assume that "tree" objects are alive basically forever.
+                add_to_dump_list(field_type);
             }
 
-            fprintf(output_file, "%s(%zu, '%s')", field_class, field_size, field_type_name);
+            if (TREE_CODE(field_type) == VOID_TYPE) {
+                fprintf(output_file, "Void()");
+            } else if (DECL_BIT_FIELD(field)) {
+                // bitfields TREE_TYPE has no TYPE_IDENTIFIER.
+                fprintf(output_file, "Bitfield(%ld)", TREE_INT_CST_LOW(DECL_SIZE(field)));
+            } else {
+                const char *field_class;
+                if (TREE_CODE(field_type) == FUNCTION_TYPE) {
+                    field_class = "Function";
+                } else if (TREE_CODE(field_type) == RECORD_TYPE) {
+                    field_class = "StructField";
+                } else if (TREE_CODE(field_type) == UNION_TYPE) {
+                    field_class = "UnionField";
+                } else {
+                    field_class = "Scalar";
+                }
+
+                const char *field_type_name = IDENTIFIER_POINTER(type_name);
+
+                fprintf(output_file, "%s(%zu, '%s')", field_class, field_size, field_type_name);
+            }
         }
 
         for (size_t i = 0; i < type_depth; ++i) {
@@ -288,15 +302,11 @@ static void dump_struct(const_tree type, const char *name)
         fprintf(output_file, "),\n");
     }
 
-    fprintf(output_file, "})\n");
-
-    for (struct list *iter = to_dump.list.next; iter != NULL; iter = iter->next) {
-        struct dump_list *n = container_of(iter, struct dump_list, list);
-
-        dump_struct(n->type, ORIG_TYPE_NAME(n->type));
+    print_spaces(indent_level * 4);
+    fprintf(output_file, "})");
+    if (indent_level == 0) {
+        fputc('\n', output_file);
     }
-
-    fflush(output_file);
 }
 
 static void plugin_finish_type(void *event_data, void *user_data)
@@ -319,7 +329,16 @@ static void plugin_finish_type(void *event_data, void *user_data)
         return;
     }
 
-    dump_struct(type, name);
+    dump_struct(type, name, 0);
+
+    // all leftovers
+    for (struct list *iter = to_dump.list.next; iter != NULL; iter = iter->next) {
+        struct dump_list *n = container_of(iter, struct dump_list, list);
+
+        dump_struct(n->type, ORIG_TYPE_NAME(n->type), 0);
+    }
+
+    fflush(output_file);
 
     // technically, by this point we're done. any struct / type referenced by our target struct
     // was already dumped as well.

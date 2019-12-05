@@ -7,6 +7,18 @@ union my_union {
     char y;
 };
 
+struct outer {
+    struct {
+        int a;
+        int b;
+    } inner;
+
+    union {
+        int c;
+        int d;
+    };
+};
+
 struct test_struct {
     int first_field;
     char second_field;
@@ -27,4 +39,6 @@ struct test_struct {
     char bitfield2: 5;
     int between_bitfields;
     int bitfield3: 2;
+
+    struct outer o;
 };
