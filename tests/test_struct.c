@@ -2,6 +2,11 @@ struct other_struct {
     int some_field;
 };
 
+union my_union {
+    int x;
+    char y;
+};
+
 struct test_struct {
     int first_field;
     char second_field;
@@ -14,4 +19,5 @@ struct test_struct {
 
     struct other_struct z;
 
+    union my_union u;
 };

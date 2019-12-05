@@ -224,12 +224,16 @@ static void plugin_finish_type(void *event_data, void *user_data)
 
         if (TREE_CODE(field_type) == VOID_TYPE) {
             fprintf(output_file, "Void()");
-        } else if(TREE_CODE(field_type) == RECORD_TYPE) {
-            fprintf(output_file, "Struct(%zu, '%s')", field_size, field_type_name);
         } else {
-            const char *field_class = "Basic";
+            const char *field_class;
             if (TREE_CODE(field_type) == FUNCTION_TYPE) {
                 field_class = "Function";
+            } else if (TREE_CODE(field_type) == RECORD_TYPE) {
+                field_class = "Struct";
+            } else if (TREE_CODE(field_type) == UNION_TYPE) {
+                field_class = "Union";
+            } else {
+                field_class = "Basic";
             }
 
             fprintf(output_file, "%s(%zu, '%s')", field_class, field_size, field_type_name);

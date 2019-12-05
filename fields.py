@@ -44,6 +44,17 @@ class Struct(Basic):
         return super(Struct, self).__eq__(other)
 
 
+class Union(Basic):
+    def __init__(self, total_size, type_):
+        super(Union, self).__init__(total_size, type_)
+
+    def __eq__(self, other):
+        if not isinstance(other, Union):
+            return NotImplemented
+
+        return super(Union, self).__eq__(other)
+
+
 class Function(Basic):
     def __init__(self, total_size, type_):
         super(Function, self).__init__(total_size, type_)
