@@ -50,9 +50,9 @@ static const char *target_struct = NULL;
 static void debug_tree_helper(tree t, const char *msg)
 {
 #ifndef NDEBUG
-    printf("dumping tree: '%s'\n", msg);
+    fprintf(stderr, "dumping tree: '%s'\n", msg);
     debug_tree(t);
-    printf("\n\n");
+    fprintf(stderr, "\n\n");
     fflush(stdout);
 #endif
 }
