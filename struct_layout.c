@@ -109,12 +109,12 @@ static void print_array_type(const tree field_type, size_t sizeof_array)
     const size_t elem_size = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(TREE_TYPE(field_type)));
     const size_t num_elem = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(field_type)) / elem_size;
 
-    fprintf(output_file, "Array(%d, %d, ", sizeof_array, num_elem);
+    fprintf(output_file, "Array(%zu, %zu, ", sizeof_array, num_elem);
 }
 
 static void print_pointer_type(size_t size)
 {
-    fprintf(output_file, "Pointer(%d, ", size);
+    fprintf(output_file, "Pointer(%zu, ", size);
 }
 
 // returns 0 if type has no size (i.e VOID_TYPE)
@@ -170,18 +170,17 @@ static void plugin_finish_type(void *event_data, void *user_data)
         // field type size
         tree field_type = TREE_TYPE(field);
         size_t field_size;
-        size_t num_elem;
 
         // field offset
         tree t_offset = DECL_FIELD_OFFSET(field);
         gcc_assert(TREE_CODE(t_offset) == INTEGER_CST && TREE_CONSTANT(t_offset));
-        int offset = TREE_INT_CST_LOW(t_offset) * 8;
+        size_t offset = TREE_INT_CST_LOW(t_offset) * 8;
         // add bit offset. there's an explanation about why it's required, see macro declaration in tree.h
         tree t_bit_offset = DECL_FIELD_BIT_OFFSET(field);
         gcc_assert(TREE_CODE(t_bit_offset) == INTEGER_CST && TREE_CONSTANT(t_bit_offset));
         offset += TREE_INT_CST_LOW(t_bit_offset);
 
-        fprintf(output_file, "\t'%s': (%d, ", field_name, offset);
+        fprintf(output_file, "\t'%s': (%zu, ", field_name, offset);
 
         size_t type_depth = 0;
 
@@ -215,7 +214,7 @@ static void plugin_finish_type(void *event_data, void *user_data)
 
         field_size = get_field_size(field_type);
 
-        fprintf(output_file, "Basic(%d, '%s')", field_size, field_type_name);
+        fprintf(output_file, "Basic(%zu, '%s')", field_size, field_type_name);
 
         for (size_t i = 0; i < type_depth; ++i) {
             fprintf(output_file, ")");
@@ -233,7 +232,7 @@ int plugin_init(struct plugin_name_args *plugin_info, struct plugin_gcc_version 
 {
     const char *output = NULL;
 
-    for (size_t i = 0; i < plugin_info->argc; ++i) {
+    for (int i = 0; i < plugin_info->argc; ++i) {
         if (0 == strcmp(plugin_info->argv[i].key, "output")) {
             output = plugin_info->argv[i].value;
         }

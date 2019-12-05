@@ -1,11 +1,16 @@
-all: struct_layout.so
+PLUGIN = struct_layout.so
 
-struct_layout.so: struct_layout.c
-	g++ -g -I`gcc -print-file-name=plugin`/include -fpic -shared -o $@ $<
+all: $(PLUGIN)
 
-run: struct_layout.so tests/test_struct.c
-	gcc -fplugin=./struct_layout.so -fplugin-arg-struct_layout-output=layout.txt -fplugin-arg-struct_layout-struct=test_struct tests/test_struct.c -c
+$(PLUGIN): struct_layout.c
+	g++ -g -Wall -Werror -I`gcc -print-file-name=plugin`/include -fpic -shared -o $@ $<
+
+run: $(PLUGIN) tests/test_struct.c
+	gcc -fplugin=./$(PLUGIN) -fplugin-arg-struct_layout-output=layout.txt -fplugin-arg-struct_layout-struct=test_struct tests/test_struct.c -c
 	cat layout.txt
 
-test: struct_layout.so
+test: $(PLUGIN)
 	python -m pytest -v tests
+
+clean:
+	rm -f $(PLUGIN)
