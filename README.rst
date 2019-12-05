@@ -21,10 +21,11 @@ Using the output
 
 Output is printed as Python objects, for easier handling later.
 
-A dictionary is created for each struct / union (with the same name).
+A ``Struct`` object (or ``Union``) is created for each item.
+The object holds the name and size of the struct/union, plus a dictionary of the fields.
 The dictionary maps field names to tuples of (offset, field type). For unions, the offset is always 0.
 
-Field types are defined in ``fields.py``.
+The objects & field types are defined in ``fields.py``.
 
 All types (but ``Void``) have a ``total_size`` attribute, with their total size in bits. Other attributes vary between
 field types:
@@ -42,11 +43,11 @@ For example, the struct ``struct s { int x; char y; void *p; };`` on my x86-64 e
 
 .. code-block:: python
 
-    s = {
+    s = Struct('s', 128, {
         'x': (0, Scalar(32, 'int')),
         'y': (32, Scalar(8, 'char')),
         'p': (64, Pointer(64, Void())),
-    }
+    })
 
 
 For a Linux kernel struct

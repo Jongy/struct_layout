@@ -164,14 +164,25 @@ static size_t get_field_size(const tree field_type)
 
 static void dump_struct(const_tree type, const char *name)
 {
-    if (was_dumped(name)) {
-        return;
-    }
-    // add it immediately, so if we find any back references into current struct, we don't
-    // dump it again.
-    add_to_dumped_structs(name);
+    if (NULL != name) {
+        if (was_dumped(name)) {
+            return;
+        }
+        // add it immediately, so if we find any back references into current struct, we don't
+        // dump it again.
+        add_to_dumped_structs(name);
 
-    fprintf(output_file, "%s = {\n", name);
+        fprintf(output_file, "%s = ", name);
+    }
+
+    gcc_assert(RECORD_TYPE == TREE_CODE(type) || UNION_TYPE == TREE_CODE(type));
+    fprintf(output_file, "%s(", RECORD_TYPE == TREE_CODE(type) ? "Struct" : "Union");
+    if (NULL != name) {
+        fprintf(output_file, "'%s'", name);
+    } else {
+        fprintf(output_file, "None");
+    }
+    fprintf(output_file, ", %ld, {\n", TREE_INT_CST_LOW(TYPE_SIZE(type)));
 
     for (tree field = TYPE_FIELDS(type); field; field = TREE_CHAIN(field)) {
         gcc_assert(TREE_CODE(field) == FIELD_DECL);
@@ -277,7 +288,7 @@ static void dump_struct(const_tree type, const char *name)
         fprintf(output_file, "),\n");
     }
 
-    fprintf(output_file, "}\n");
+    fprintf(output_file, "})\n");
 
     for (struct list *iter = to_dump.list.next; iter != NULL; iter = iter->next) {
         struct dump_list *n = container_of(iter, struct dump_list, list);

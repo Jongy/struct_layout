@@ -104,3 +104,25 @@ class Array(Type):
 
         return (self.num_elem == other.num_elem and self.elem_type == other.elem_type
                 and super(Array, self).__eq__(other))
+
+
+class StructBase(Type):
+    def __init__(self, name, total_size, fields):
+        super(StructBase, self).__init__(total_size)
+        self.name = name
+        self.fields = fields
+
+    def __eq__(self, other):
+        if type(other) is not type(self):
+            return NotImplemented
+
+        return (self.name == other.name and self.fields == other.fields
+                and super(StructBase, self).__eq__(other))
+
+
+class Struct(StructBase):
+    pass
+
+
+class Union(StructBase):
+    pass
