@@ -106,7 +106,8 @@ static bool is_basic_type(tree type)
 
 static void print_array_type(const tree field_type, size_t sizeof_array)
 {
-    const size_t num_elem = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(field_type));
+    const size_t elem_size = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(TREE_TYPE(field_type)));
+    const size_t num_elem = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(field_type)) / elem_size;
 
     fprintf(output_file, "Array(%d, %d, ", sizeof_array, num_elem);
 }
@@ -169,7 +170,6 @@ static void plugin_finish_type(void *event_data, void *user_data)
         // field type size
         tree field_type = TREE_TYPE(field);
         size_t field_size;
-        size_t elem_size;
         size_t num_elem;
 
         // field offset

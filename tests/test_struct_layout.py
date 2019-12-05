@@ -44,3 +44,10 @@ def test_struct_pointer():
     assert s["p"] == (0, Pointer(64, Basic(0, "void")))
     assert s["h"] == (64, Pointer(64, Pointer(64, Basic(0, "void"))))
     assert s["z"] == (128, Pointer(64, Pointer(64, Pointer(64, Basic(32, "int")))))
+
+
+def test_struct_array():
+    s = dump_struct_layout("struct x { int arr[5]; void *p[2]; };", "x")
+    assert len(s.keys()) == 2
+    assert s["arr"] == (0, Array(5 * 32, 5, Basic(32, "int")))
+    assert s["p"] == (5 * 32 + 32, Array(2 * 64, 2, Pointer(64, Basic(0, "void"))))
