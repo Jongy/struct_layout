@@ -165,13 +165,18 @@ static void plugin_finish_type(void *event_data, void *user_data)
 
         debug_tree_helper(field, "field");
 
-        // field name
-        const char *field_name = IDENTIFIER_POINTER(DECL_NAME(field));
-        gcc_assert(NULL != field_name); // shouldn't be NULL, no annonymous decls in a struct.
-
-        // field type size
         tree field_type = TREE_TYPE(field);
-        size_t field_size;
+
+        // field name
+        const char *field_name;
+        const_tree decl = DECL_NAME(field);
+        if (NULL != decl) {
+            field_name = IDENTIFIER_POINTER(decl);
+        } else {
+            // shouldn't be NULL, only allowed for anonymous unions.
+            gcc_assert(UNION_TYPE == TREE_CODE(field_type));
+            field_name = "(anonymous union)";
+        }
 
         // field offset
         tree t_offset = DECL_FIELD_OFFSET(field);
@@ -220,7 +225,7 @@ static void plugin_finish_type(void *event_data, void *user_data)
             field_type_name = IDENTIFIER_POINTER(type_name);
         }
 
-        field_size = get_field_size(field_type);
+        const size_t field_size = get_field_size(field_type);
 
         if (TREE_CODE(field_type) == VOID_TYPE) {
             fprintf(output_file, "Void()");

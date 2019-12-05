@@ -65,3 +65,9 @@ def test_struct_union():
     s = dump_struct_layout("union u { int x; char c; long l; }; struct c { union u u; };", "c")
     assert len(s.keys()) == 1
     assert s["u"] == (0, Union(64, "u"))
+
+
+def test_struct_anonymous_union():
+    s = dump_struct_layout("struct c { union { int x; float f; }; };", "c")
+    assert len(s.keys()) == 1
+    assert s["(anonymous union)"] == (0, Union(32, ""))
