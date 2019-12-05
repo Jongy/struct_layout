@@ -32,16 +32,18 @@ class Bitfield(Type):
 
 
 class Scalar(Type):
-    def __init__(self, total_size, type_):
+    def __init__(self, total_size, type_, signed):
         super(Scalar, self).__init__(total_size)
         self.type = type_
+        self.signed = signed
 
     def __eq__(self, other):
         print(self, other)
         if not isinstance(other, Scalar):
             return NotImplemented
 
-        return self.type == other.type and super(Scalar, self).__eq__(other)
+        return (self.type == other.type and self.signed == other.signed
+                and super(Scalar, self).__eq__(other))
 
 
 class StructField(Type):

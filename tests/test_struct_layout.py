@@ -36,10 +36,10 @@ def dump_struct_layout(struct_code, struct_name):
 
 
 def test_struct_basic():
-    s = dump_struct_layout("struct x { int y; char z; };", "x")["x"].fields
+    s = dump_struct_layout("struct x { int y; unsigned char z; };", "x")["x"].fields
     assert len(s.keys()) == 2
-    assert s["y"] == (0, Scalar(32, "int"))
-    assert s["z"] == (32, Scalar(8, "char"))
+    assert s["y"] == (0, Scalar(32, "int", True))
+    assert s["z"] == (32, Scalar(8, "unsigned char", False))
 
 
 def test_struct_pointer():
@@ -47,27 +47,28 @@ def test_struct_pointer():
     assert len(s.keys()) == 3
     assert s["p"] == (0, Pointer(64, Void()))
     assert s["h"] == (64, Pointer(64, Pointer(64, Void())))
-    assert s["z"] == (128, Pointer(64, Pointer(64, Pointer(64, Scalar(32, "int")))))
+    assert s["z"] == (128, Pointer(64, Pointer(64, Pointer(64, Scalar(32, "int", True)))))
 
 
 def test_struct_array():
     s = dump_struct_layout("struct x { int arr[5]; void *p[2]; };", "x")["x"].fields
     assert len(s.keys()) == 2
-    assert s["arr"] == (0, Array(5 * 32, 5, Scalar(32, "int")))
+    assert s["arr"] == (0, Array(5 * 32, 5, Scalar(32, "int", True)))
     assert s["p"] == (5 * 32 + 32, Array(2 * 64, 2, Pointer(64, Void())))
 
 
 def test_struct_array_two_dimensions():
     s = dump_struct_layout("struct x { int arr[5][2]; };", "x")["x"].fields
     assert len(s.keys()) == 1
-    assert s["arr"] == (0, Array(5 * 2 * 32, 5, Array(2 * 32, 2, Scalar(32, "int"))))
+    assert s["arr"] == (0, Array(5 * 2 * 32, 5, Array(2 * 32, 2, Scalar(32, "int", True))))
 
 
 def test_struct_struct():
-    s = dump_struct_layout("struct a { int x; }; struct b { struct a aa; int xx; };", "b")["b"].fields
+    s = (dump_struct_layout("struct a { int x; }; struct b { struct a aa; int xx; };", "b")
+         ["b"].fields)
     assert len(s.keys()) == 2
     assert s["aa"] == (0, StructField(32, "a"))
-    assert s["xx"] == (32, Scalar(32, "int"))
+    assert s["xx"] == (32, Scalar(32, "int", True))
 
 
 def test_struct_union():
@@ -81,17 +82,17 @@ def test_struct_union():
     assert u.total_size == 64
     u = u.fields
     assert len(u.keys()) == 3
-    assert u["x"] == (0, Scalar(32, "int"))
-    assert u["c"] == (0, Scalar(8, "char"))
-    assert u["l"] == (0, Scalar(64, "long int"))
+    assert u["x"] == (0, Scalar(32, "int", True))
+    assert u["c"] == (0, Scalar(8, "char", True))
+    assert u["l"] == (0, Scalar(64, "long int", True))
 
 
 def test_struct_anonymous_union():
     s = dump_struct_layout("struct c { union { int x; float f; }; };", "c")["c"].fields
     assert len(s.keys()) == 1
     assert s["(anonymous union)"] == (0, StructField(32, Union(None, 32, {
-        "x": (0, Scalar(32, "int")),
-        "f": (0, Scalar(32, "float")),
+        "x": (0, Scalar(32, "int", True)),
+        "f": (0, Scalar(32, "float", True)),
     })))
 
 
@@ -104,7 +105,7 @@ def test_struct_recursive_dump():
 
     a = decls[b["a"][1].type].fields
     assert len(a.keys()) == 1
-    assert a["x"] == (0, Scalar(32, "int"))
+    assert a["x"] == (0, Scalar(32, "int", True))
 
 
 def test_struct_dump_only_necessary():
@@ -112,18 +113,19 @@ def test_struct_dump_only_necessary():
 
     b = decls["b"].fields
     assert len(b.keys()) == 1
-    assert b["y"] == (0, Scalar(32, "int"))
+    assert b["y"] == (0, Scalar(32, "int", True))
 
     assert "a" not in decls
 
 
 def test_struct_bitfields():
-    x = dump_struct_layout("struct x { int bf1: 3; int bf2: 1; int n; int bf3: 29; };", "x")["x"].fields
+    x = (dump_struct_layout("struct x { int bf1: 3; int bf2: 1; int n; int bf3: 29; };", "x")
+         ["x"].fields)
 
     assert len(x.keys()) == 4
     assert x["bf1"] == (0, Bitfield(3))
     assert x["bf2"] == (3, Bitfield(1))
-    assert x["n"] == (32, Scalar(32, "int"))
+    assert x["n"] == (32, Scalar(32, "int", True))
     assert x["bf3"] == (64, Bitfield(29))
 
 

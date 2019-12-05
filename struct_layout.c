@@ -281,19 +281,17 @@ static void dump_struct(const_tree base_type, const char *name, size_t indent_le
                 // function pointers
                 // TODO: print type & args
                 fprintf(output_file, "Function()");
-            } else {
+            } else if (is_struct_or_union(field_type)) {
                 const char *field_class;
                 if (TREE_CODE(field_type) == RECORD_TYPE) {
                     field_class = "StructField";
                 } else if (TREE_CODE(field_type) == UNION_TYPE) {
                     field_class = "UnionField";
-                } else {
-                    field_class = "Scalar";
                 }
-
-                const char *field_type_name = IDENTIFIER_POINTER(type_name);
-
-                fprintf(output_file, "%s(%zu, '%s')", field_class, field_size, field_type_name);
+                fprintf(output_file, "%s(%zu, '%s')", field_class, field_size, IDENTIFIER_POINTER(type_name));
+            } else {
+                fprintf(output_file, "Scalar(%zu, '%s', %s)", field_size, IDENTIFIER_POINTER(type_name),
+                    TYPE_UNSIGNED(field_type) ? "False" : "True");
             }
         }
 
