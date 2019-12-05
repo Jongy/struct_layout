@@ -104,16 +104,16 @@ static bool is_basic_type(tree type)
     }
 }
 
-static void print_array_type(const tree field_type, const char *field_name, size_t offset, size_t sizeof_array)
+static void print_array_type(const tree field_type, size_t sizeof_array)
 {
     const size_t num_elem = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(field_type));
 
-    fprintf(output_file, "Array('%s', %d, %d, %d, ", field_name, offset, sizeof_array, num_elem);
+    fprintf(output_file, "Array(%d, %d, ", sizeof_array, num_elem);
 }
 
-static void print_pointer_type(const char *field_name, size_t offset, size_t size)
+static void print_pointer_type(size_t size)
 {
-    fprintf(output_file, "Pointer('%s', %d, %d, ", field_name, offset, size);
+    fprintf(output_file, "Pointer(%d, ", size);
 }
 
 // returns 0 if type has no size (i.e VOID_TYPE)
@@ -155,7 +155,7 @@ static void plugin_finish_type(void *event_data, void *user_data)
     // dump it again.
     add_dumped(name);
 
-    fprintf(output_file, "%s = [\n", name);
+    fprintf(output_file, "%s = {\n", name);
 
     for (tree field = TYPE_FIELDS(type); field; field = TREE_CHAIN(field)) {
         gcc_assert(TREE_CODE(field) == FIELD_DECL);
@@ -181,9 +181,9 @@ static void plugin_finish_type(void *event_data, void *user_data)
         gcc_assert(TREE_CODE(t_bit_offset) == INTEGER_CST && TREE_CONSTANT(t_bit_offset));
         offset += TREE_INT_CST_LOW(t_bit_offset);
 
-        size_t type_depth = 0;
+        fprintf(output_file, "\t'%s': (%d, ", field_name, offset);
 
-        fprintf(output_file, "\t");
+        size_t type_depth = 0;
 
         // handle arrays and pointers, until we reach a "basic" type.
         while (!is_basic_type(field_type)) {
@@ -191,12 +191,12 @@ static void plugin_finish_type(void *event_data, void *user_data)
 
             switch (TREE_CODE(field_type)) {
             case ARRAY_TYPE:
-                print_array_type(field_type, field_name, offset, field_type_size);
+                print_array_type(field_type, field_type_size);
                 break;
 
             case POINTER_TYPE:
             case REFERENCE_TYPE: // POINTER_TYPE_P checks for this as well. let's try to be c++ compatible.
-                print_pointer_type(field_name, offset, field_type_size);
+                print_pointer_type(field_type_size);
                 break;
 
             default:
@@ -215,7 +215,7 @@ static void plugin_finish_type(void *event_data, void *user_data)
 
         field_size = get_field_size(field_type);
 
-        fprintf(output_file, "Basic('%s', %d, %d, '%s')", field_name, offset, field_size, field_type_name);
+        fprintf(output_file, "Basic(%d, '%s')", field_size, field_type_name);
 
         for (size_t i = 0; i < type_depth; ++i) {
             fprintf(output_file, ")");
@@ -224,7 +224,7 @@ static void plugin_finish_type(void *event_data, void *user_data)
         fprintf(output_file, "),\n");
     }
 
-    fprintf(output_file, "]\n");
+    fprintf(output_file, "}\n");
 
     fflush(output_file);
 }
