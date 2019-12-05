@@ -175,7 +175,7 @@ static void plugin_finish_type(void *event_data, void *user_data)
         // field offset
         tree t_offset = DECL_FIELD_OFFSET(field);
         gcc_assert(TREE_CODE(t_offset) == INTEGER_CST && TREE_CONSTANT(t_offset));
-        int offset = TREE_INT_CST_LOW(t_offset);
+        int offset = TREE_INT_CST_LOW(t_offset) * 8;
         // add bit offset. there's an explanation about why it's required, see macro declaration in tree.h
         tree t_bit_offset = DECL_FIELD_BIT_OFFSET(field);
         gcc_assert(TREE_CODE(t_bit_offset) == INTEGER_CST && TREE_CONSTANT(t_bit_offset));
