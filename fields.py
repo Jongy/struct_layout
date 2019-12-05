@@ -9,6 +9,17 @@ class Type(object):
         return self.total_size == other.total_size
 
 
+class Void(Type):
+    def __init__(self):
+        super(Void, self).__init__(0)
+
+    def __eq__(self, other):
+        if not isinstance(other, Void):
+            return NotImplemented
+
+        return super(Void, self).__eq__(other)
+
+
 class Basic(Type):
     def __init__(self, total_size, type_):
         super(Basic, self).__init__(total_size)

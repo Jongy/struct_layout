@@ -222,12 +222,16 @@ static void plugin_finish_type(void *event_data, void *user_data)
 
         field_size = get_field_size(field_type);
 
-        const char *field_class = "Basic";
-        if (TREE_CODE(field_type) == FUNCTION_TYPE) {
-            field_class = "Function";
-        }
+        if (TREE_CODE(field_type) == VOID_TYPE) {
+            fprintf(output_file, "Void()");
+        } else {
+            const char *field_class = "Basic";
+            if (TREE_CODE(field_type) == FUNCTION_TYPE) {
+                field_class = "Function";
+            }
 
-        fprintf(output_file, "%s(%zu, '%s')", field_class, field_size, field_type_name);
+            fprintf(output_file, "%s(%zu, '%s')", field_class, field_size, field_type_name);
+        }
 
         for (size_t i = 0; i < type_depth; ++i) {
             fprintf(output_file, ")");
