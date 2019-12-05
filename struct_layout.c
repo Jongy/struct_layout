@@ -185,7 +185,7 @@ static void dump_struct(const_tree type, const char *name)
         gcc_assert(TREE_CODE(t_bit_offset) == INTEGER_CST && TREE_CONSTANT(t_bit_offset));
         offset += TREE_INT_CST_LOW(t_bit_offset);
 
-        fprintf(output_file, "\t'%s': (%zu, ", field_name, offset);
+        fprintf(output_file, "    '%s': (%zu, ", field_name, offset);
 
         size_t type_depth = 0;
 
