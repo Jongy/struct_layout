@@ -20,4 +20,6 @@ struct test_struct {
     struct other_struct z;
 
     union my_union u;
+
+    int twodim[3][2];
 };

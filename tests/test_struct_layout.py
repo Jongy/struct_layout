@@ -54,6 +54,12 @@ def test_struct_array():
     assert s["p"] == (5 * 32 + 32, Array(2 * 64, 2, Pointer(64, Void())))
 
 
+def test_struct_array_two_dimensions():
+    s = dump_struct_layout("struct x { int arr[5][2]; };", "x")["x"]
+    assert len(s.keys()) == 1
+    assert s["arr"] == (0, Array(5 * 2 * 32, 5, Array(2 * 32, 2, Basic(32, "int"))))
+
+
 def test_struct_struct():
     s = dump_struct_layout("struct a { int x; }; struct b { struct a aa; int xx; };", "b")["b"]
     assert len(s.keys()) == 2
