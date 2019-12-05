@@ -2,7 +2,7 @@ import os.path
 import subprocess
 import tempfile
 
-from ..fields import Type, Basic, Pointer, Array, Void
+from ..fields import Type, Basic, Pointer, Array, Void, Struct
 
 
 STRUCT_LAYOUT_SO = os.path.abspath(
@@ -23,7 +23,8 @@ def dump_struct_layout(struct_code, struct_name):
 
         run_gcc(tf1.name, tf2.name, struct_name)
 
-        load_globals = {"Basic": Basic, "Void": Void, "Pointer": Pointer, "Array": Array}
+        load_globals = {"Basic": Basic, "Void": Void, "Struct": Struct, "Pointer": Pointer,
+                        "Array": Array}
         struct_def = tf2.read()
         print(struct_def)  # for debugging
         # hehe :(
@@ -51,3 +52,10 @@ def test_struct_array():
     assert len(s.keys()) == 2
     assert s["arr"] == (0, Array(5 * 32, 5, Basic(32, "int")))
     assert s["p"] == (5 * 32 + 32, Array(2 * 64, 2, Pointer(64, Void())))
+
+
+def test_struct_struct():
+    s = dump_struct_layout("struct a { int x; }; struct b { struct a aa; int xx; };", "b")
+    assert len(s.keys()) == 2
+    assert s["aa"] == (0, Struct(32, "a"))
+    assert s["xx"] == (32, Basic(32, "int"))

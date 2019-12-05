@@ -224,6 +224,8 @@ static void plugin_finish_type(void *event_data, void *user_data)
 
         if (TREE_CODE(field_type) == VOID_TYPE) {
             fprintf(output_file, "Void()");
+        } else if(TREE_CODE(field_type) == RECORD_TYPE) {
+            fprintf(output_file, "Struct(%zu, '%s')", field_size, field_type_name);
         } else {
             const char *field_class = "Basic";
             if (TREE_CODE(field_type) == FUNCTION_TYPE) {

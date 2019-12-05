@@ -26,10 +26,22 @@ class Basic(Type):
         self.type = type_
 
     def __eq__(self, other):
+        print(self, other)
         if not isinstance(other, Basic):
             return NotImplemented
 
         return self.type == other.type and super(Basic, self).__eq__(other)
+
+
+class Struct(Basic):
+    def __init__(self, total_size, type_):
+        super(Struct, self).__init__(total_size, type_)
+
+    def __eq__(self, other):
+        if not isinstance(other, Struct):
+            return NotImplemented
+
+        return super(Struct, self).__eq__(other)
 
 
 class Function(Basic):

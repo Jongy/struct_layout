@@ -10,9 +10,8 @@ struct test_struct {
 
     int my_array[17];
 
-    // pointers to pointers are broken
-    // void **p;
+    void **p;
 
-    // other structs are a bit broken
-    // struct other_struct z;
+    struct other_struct z;
+
 };
