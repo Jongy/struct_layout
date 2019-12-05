@@ -69,15 +69,15 @@ class UnionField(Type):
 
 
 class Function(Type):
-    def __init__(self, total_size, type_):
-        super(Function, self).__init__(total_size, type_)
+    def __init__(self, type_=None):
+        super(Function, self).__init__(0)
         self.type = type_
 
     def __eq__(self, other):
         if not isinstance(other, Function):
             return NotImplemented
 
-        return super(Function, self).__eq__(other)
+        return self.type == other.type and super(Function, self).__eq__(other)
 
 
 class Pointer(Type):

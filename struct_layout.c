@@ -277,11 +277,13 @@ static void dump_struct(const_tree base_type, const char *name, size_t indent_le
             } else if (DECL_BIT_FIELD(field)) {
                 // bitfields TREE_TYPE has no TYPE_IDENTIFIER.
                 fprintf(output_file, "Bitfield(%ld)", TREE_INT_CST_LOW(DECL_SIZE(field)));
+            } else if (TREE_CODE(field_type) == FUNCTION_TYPE) {
+                // function pointers
+                // TODO: print type & args
+                fprintf(output_file, "Function()");
             } else {
                 const char *field_class;
-                if (TREE_CODE(field_type) == FUNCTION_TYPE) {
-                    field_class = "Function";
-                } else if (TREE_CODE(field_type) == RECORD_TYPE) {
+                if (TREE_CODE(field_type) == RECORD_TYPE) {
                     field_class = "StructField";
                 } else if (TREE_CODE(field_type) == UNION_TYPE) {
                     field_class = "UnionField";

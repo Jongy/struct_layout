@@ -31,10 +31,11 @@ All types (but ``Void``) have a ``total_size`` attribute, with their total size 
 field types:
 
 * ``Scalar`` - scalars, they also have their basic type, like ``int`` or ``char`` or ``unsigned long int``.
-* ``Void`` - ``void`` type, for example in ``void *``.
 * ``StructField`` - struct fields, these have the struct name they are referencing.
 * ``UnionField`` - like ``StructField`` for unions.
 * ``Pointer`` - for all types of pointers, these have their "pointee" type, which may be e.g ``Scalar`` or
+* ``Void`` - ``void`` type, for example in ``void *``.
+* ``Function`` - pointee type in case of function pointers.
   another ``Pointer`` or anything else.
 * ``Array`` - for arrays, these have the number of elements and the type of each element (similar to the
   pointee type of ``Pointer``)

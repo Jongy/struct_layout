@@ -2,7 +2,7 @@ import os.path
 import subprocess
 import tempfile
 
-from ..fields import (Scalar, Bitfield, Pointer, Array, Void, StructField, UnionField,
+from ..fields import (Scalar, Bitfield, Pointer, Void, Function, Array, StructField, UnionField,
                       Struct, Union)
 
 
@@ -24,7 +24,7 @@ def dump_struct_layout(struct_code, struct_name):
 
         run_gcc(tf1.name, tf2.name, struct_name)
 
-        load_globals = {"Scalar": Scalar, "Bitfield": Bitfield, "Void": Void,
+        load_globals = {"Scalar": Scalar, "Bitfield": Bitfield, "Void": Void, "Function": Function,
                         "StructField": StructField, "UnionField": UnionField,
                         "Pointer": Pointer, "Array": Array,
                         "Struct": Struct, "Union": Union}
@@ -125,3 +125,10 @@ def test_struct_bitfields():
     assert x["bf2"] == (3, Bitfield(1))
     assert x["n"] == (32, Scalar(32, "int"))
     assert x["bf3"] == (64, Bitfield(29))
+
+
+def test_struct_function_ptrs():
+    x = dump_struct_layout("struct x { int (*f)(int) };", "x")["x"].fields
+
+    assert len(x.keys()) == 1
+    assert x["f"] == (0, Pointer(64, Function()))
