@@ -31,44 +31,53 @@ class Bitfield(Type):
         return super(Bitfield, self).__eq__(other)
 
 
-class Basic(Type):
+class Scalar(Type):
     def __init__(self, total_size, type_):
-        super(Basic, self).__init__(total_size)
+        super(Scalar, self).__init__(total_size)
         self.type = type_
 
     def __eq__(self, other):
         print(self, other)
-        if not isinstance(other, Basic):
+        if not isinstance(other, Scalar):
             return NotImplemented
 
-        return self.type == other.type and super(Basic, self).__eq__(other)
+        return self.type == other.type and super(Scalar, self).__eq__(other)
 
 
-class Struct(Basic):
+class StructField(Type):
     def __init__(self, total_size, type_):
-        super(Struct, self).__init__(total_size, type_)
+        super(StructField, self).__init__(total_size)
+        self.type = type_
 
     def __eq__(self, other):
-        if not isinstance(other, Struct):
+        if not isinstance(other, StructField):
             return NotImplemented
 
-        return super(Struct, self).__eq__(other)
+        return self.type == other.type and super(StructField, self).__eq__(other)
 
 
-class Union(Basic):
+class UnionField(Type):
     def __init__(self, total_size, type_):
-        super(Union, self).__init__(total_size, type_)
+        super(UnionField, self).__init__(total_size)
+        self.type = type_
 
     def __eq__(self, other):
-        if not isinstance(other, Union):
+        if not isinstance(other, UnionField):
             return NotImplemented
 
-        return super(Union, self).__eq__(other)
+        return self.type == other.type and super(UnionField, self).__eq__(other)
 
 
-class Function(Basic):
+class Function(Type):
     def __init__(self, total_size, type_):
         super(Function, self).__init__(total_size, type_)
+        self.type = type_
+
+    def __eq__(self, other):
+        if not isinstance(other, Function):
+            return NotImplemented
+
+        return super(Function, self).__eq__(other)
 
 
 class Pointer(Type):

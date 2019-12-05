@@ -235,11 +235,11 @@ static void dump_struct(const_tree type, const char *name)
             if (TREE_CODE(field_type) == FUNCTION_TYPE) {
                 field_class = "Function";
             } else if (TREE_CODE(field_type) == RECORD_TYPE) {
-                field_class = "Struct";
+                field_class = "StructField";
             } else if (TREE_CODE(field_type) == UNION_TYPE) {
-                field_class = "Union";
+                field_class = "UnionField";
             } else {
-                field_class = "Basic";
+                field_class = "Scalar";
             }
 
             fprintf(output_file, "%s(%zu, '%s')", field_class, field_size, field_type_name);
