@@ -210,6 +210,11 @@ static void dump_struct(const_tree base_type, const char *name, size_t indent_le
         if (NULL != decl_name) {
             field_name = IDENTIFIER_POINTER(decl_name);
         } else {
+            // unnamed bitfield, ignore and continue
+            if (DECL_BIT_FIELD(field)) {
+                continue;
+            }
+
             // shouldn't be NULL, only allowed for anonymous unions.
             gcc_assert(UNION_TYPE == TREE_CODE(field_type));
             field_name = "(anonymous union)";

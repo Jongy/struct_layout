@@ -119,12 +119,12 @@ def test_struct_dump_only_necessary():
 
 
 def test_struct_bitfields():
-    x = (dump_struct_layout("struct x { int bf1: 3; int bf2: 1; int n; int bf3: 29; };", "x")
+    x = (dump_struct_layout("struct x { int bf1: 3; int:5; int bf2: 1; int n; int bf3: 29; };", "x")
          ["x"].fields)
 
     assert len(x.keys()) == 4
     assert x["bf1"] == (0, Bitfield(3))
-    assert x["bf2"] == (3, Bitfield(1))
+    assert x["bf2"] == (8, Bitfield(1))
     assert x["n"] == (32, Scalar(32, "int", True))
     assert x["bf3"] == (64, Bitfield(29))
 
