@@ -2,8 +2,7 @@ import os.path
 import subprocess
 import tempfile
 
-from ..fields import (Scalar, Bitfield, Pointer, Void, Function, Array, StructField, UnionField,
-                      Struct, Union)
+from ..fields import (Scalar, Bitfield, Pointer, Void, Function, Array, StructField, Struct)
 
 
 STRUCT_LAYOUT_SO = os.path.abspath(
@@ -28,9 +27,10 @@ def dump_struct_layout(struct_code, struct_name):
         run_gcc(tf1.name, tf2.name, struct_name)
 
         load_globals = {"Scalar": Scalar, "Bitfield": Bitfield, "Void": Void, "Function": Function,
-                        "StructField": StructField, "UnionField": UnionField,
+                        "StructField": StructField,
                         "Pointer": Pointer, "Array": Array,
-                        "Struct": Struct, "Union": Union}
+                        "Struct": Struct,
+                        }
         struct_def = tf2.read()
         print(struct_def)  # for debugging
         # hehe :(
@@ -91,7 +91,7 @@ def test_struct_union():
 
     c = decls["c"].fields
     assert len(c.keys()) == 1
-    assert c["u"] == (0, UnionField(64, "u"))
+    assert c["u"] == (0, StructField(64, "u"))
 
     u = decls["u"]
     assert u.total_size == 64

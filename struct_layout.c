@@ -287,13 +287,7 @@ static void dump_fields(tree first_field, size_t base_offset, size_t indent_leve
                 // TODO: print type & args
                 fprintf(output_file, "Function()");
             } else if (is_struct_or_union(field_type)) {
-                const char *field_class;
-                if (TREE_CODE(field_type) == RECORD_TYPE) {
-                    field_class = "StructField";
-                } else if (TREE_CODE(field_type) == UNION_TYPE) {
-                    field_class = "UnionField";
-                }
-                fprintf(output_file, "%s(%zu, '%s')", field_class, field_size, IDENTIFIER_POINTER(type_name));
+                fprintf(output_file, "StructField(%zu, '%s')", field_size, IDENTIFIER_POINTER(type_name));
             } else {
                 const char *type_name_s;
                 if (NULL == type_name) {
@@ -333,7 +327,7 @@ static void dump_struct(const_tree base_type, const char *name, size_t indent_le
     gcc_assert(COMPLETE_TYPE_P(base_type));
 
     gcc_assert(is_struct_or_union(base_type));
-    fprintf(output_file, "%s(", RECORD_TYPE == TREE_CODE(base_type) ? "Struct" : "Union");
+    fprintf(output_file, "Struct(");
     if (NULL != name) {
         fprintf(output_file, "'%s'", name);
     } else {

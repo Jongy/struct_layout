@@ -108,9 +108,9 @@ class Array(Type):
                 and super(Array, self).__eq__(other))
 
 
-class StructBase(Type):
+class Struct(Type):
     def __init__(self, name, total_size, fields):
-        super(StructBase, self).__init__(total_size)
+        super(Struct, self).__init__(total_size)
         self.name = name
         self.fields = fields
 
@@ -119,12 +119,4 @@ class StructBase(Type):
             return NotImplemented
 
         return (self.name == other.name and self.fields == other.fields
-                and super(StructBase, self).__eq__(other))
-
-
-class Struct(StructBase):
-    pass
-
-
-class Union(StructBase):
-    pass
+                and super(Struct, self).__eq__(other))

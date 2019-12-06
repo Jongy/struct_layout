@@ -34,7 +34,9 @@ Using the output
 
 Output is printed as Python objects, for easier handling later.
 
-A ``Struct`` object (or ``Union``) is created for each item.
+A ``Struct`` object is created for each struct / union. There's no distinction between structs
+and unions in this aspect - unions will simply have different offsets for their fields.
+
 The object holds the name and size of the struct/union, plus a dictionary of the fields.
 The dictionary maps field names to tuples of (offset, field type). For unions, the offset is always 0.
 
@@ -44,8 +46,7 @@ All types (but ``Void``) have a ``total_size`` attribute, with their total size 
 field types:
 
 * ``Scalar`` - scalars, they also have their basic type, like ``int`` or ``char`` or ``unsigned long int``.
-* ``StructField`` - struct fields, these have the struct name they are referencing.
-* ``UnionField`` - like ``StructField`` for unions.
+* ``StructField`` - struct/union fields, these have the struct name they are referencing.
 * ``Pointer`` - for all types of pointers, these have their "pointee" type, which may be e.g ``Scalar`` or
 * ``Void`` - ``void`` type, for example in ``void *``.
 * ``Function`` - pointee type in case of function pointers.
