@@ -1,7 +1,5 @@
 A GCC plugin to dump the final layout of a struct and all types it references.
 
-This is totally WIP.
-
 Build
 =====
 
