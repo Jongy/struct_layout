@@ -1,3 +1,5 @@
+#include <stdbool.h>
+
 struct other_struct {
     int some_field;
 };
@@ -16,6 +18,10 @@ struct outer {
     union {
         int c;
         int d;
+    };
+
+    struct {
+        int z;
     };
 
     int ar[];
@@ -41,6 +47,8 @@ struct test_struct {
     char bitfield2: 5;
     int between_bitfields;
     int bitfield3: 2;
+
+    bool bb;
 
     struct outer o;
 

@@ -101,11 +101,9 @@ def test_struct_union():
 
 def test_struct_anonymous_union():
     s = dump_struct_layout("struct c { union { int x; float f; }; };", "c")["c"].fields
-    assert len(s.keys()) == 1
-    assert s["(anonymous union)"] == (0, StructField(32, Union(None, 32, {
-        "x": (0, Scalar(32, "int", True)),
-        "f": (0, Scalar(32, "float", True)),
-    })))
+    assert len(s.keys()) == 2
+    assert s["x"] == (0, Scalar(32, "int", True))
+    assert s["f"] == (0, Scalar(32, "float", True))
 
 
 def test_struct_recursive_dump():

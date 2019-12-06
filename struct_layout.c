@@ -183,41 +183,30 @@ static void print_spaces(size_t n)
     }
 }
 
-static void dump_struct(const_tree base_type, const char *name, size_t indent_level)
+static void dump_struct(const_tree base_type, const char *name, size_t indent_level);
+
+static void dump_fields(tree first_field, size_t base_offset, size_t indent_level)
 {
-    if (NULL != name) {
-        if (was_dumped(name)) {
-            return;
-        }
-        // add it immediately, so if we find any back references into current struct, we don't
-        // dump it again.
-        add_to_dumped_structs(name);
-
-        fprintf(output_file, "%s = ", name);
-    }
-
-    gcc_assert(COMPLETE_TYPE_P(base_type));
-
-    gcc_assert(is_struct_or_union(base_type));
-    fprintf(output_file, "%s(", RECORD_TYPE == TREE_CODE(base_type) ? "Struct" : "Union");
-    if (NULL != name) {
-        fprintf(output_file, "'%s'", name);
-    } else {
-        fprintf(output_file, "None");
-    }
-    fprintf(output_file, ", %ld, {\n", TREE_INT_CST_LOW(TYPE_SIZE(base_type)));
-
-    for (tree field = TYPE_FIELDS(base_type); field; field = TREE_CHAIN(field)) {
+    for (tree field = first_field; field; field = TREE_CHAIN(field)) {
         gcc_assert(TREE_CODE(field) == FIELD_DECL);
 
         debug_tree_helper(field, "field");
 
         tree field_type = TREE_TYPE(field);
 
+        // field offset
+        size_t offset = base_offset;
+        tree t_offset = DECL_FIELD_OFFSET(field);
+        gcc_assert(TREE_CODE(t_offset) == INTEGER_CST && TREE_CONSTANT(t_offset));
+        offset += TREE_INT_CST_LOW(t_offset) * 8;
+        // add bit offset. there's an explanation about why it's required, see macro declaration in tree.h
+        tree t_bit_offset = DECL_FIELD_BIT_OFFSET(field);
+        gcc_assert(TREE_CODE(t_bit_offset) == INTEGER_CST && TREE_CONSTANT(t_bit_offset));
+        offset += TREE_INT_CST_LOW(t_bit_offset);
+
         // field name
         const char *field_name;
         const_tree decl_name = DECL_NAME(field);
-        bool anonymous = false;
         if (NULL != decl_name) {
             field_name = IDENTIFIER_POINTER(decl_name);
         } else {
@@ -227,19 +216,12 @@ static void dump_struct(const_tree base_type, const char *name, size_t indent_le
             }
 
             // shouldn't be NULL, only allowed for anonymous unions.
-            gcc_assert(UNION_TYPE == TREE_CODE(field_type));
-            field_name = "(anonymous union)";
-            anonymous = true;
-        }
+            gcc_assert(is_struct_or_union(field_type));
 
-        // field offset
-        tree t_offset = DECL_FIELD_OFFSET(field);
-        gcc_assert(TREE_CODE(t_offset) == INTEGER_CST && TREE_CONSTANT(t_offset));
-        size_t offset = TREE_INT_CST_LOW(t_offset) * 8;
-        // add bit offset. there's an explanation about why it's required, see macro declaration in tree.h
-        tree t_bit_offset = DECL_FIELD_BIT_OFFSET(field);
-        gcc_assert(TREE_CODE(t_bit_offset) == INTEGER_CST && TREE_CONSTANT(t_bit_offset));
-        offset += TREE_INT_CST_LOW(t_bit_offset);
+            // inline the fields into current struct/union.
+            dump_fields(TYPE_FIELDS(field_type), offset, indent_level);
+            continue;
+        }
 
         print_spaces((indent_level + 1) * 4);
         fprintf(output_file, "'%s': (%zu, ", field_name, offset);
@@ -281,9 +263,7 @@ static void dump_struct(const_tree base_type, const char *name, size_t indent_le
             fprintf(output_file, ")");
         } else {
             // is it another struct / union?
-            if (TREE_CODE(field_type) == RECORD_TYPE || (TREE_CODE(field_type) == UNION_TYPE && !anonymous)) {
-                // add to dump list, if not anonymous.
-
+            if (is_struct_or_union(field_type)) {
                 // I assume that "tree" objects are alive basically forever.
                 add_to_dump_list(field_type);
             }
@@ -317,6 +297,33 @@ static void dump_struct(const_tree base_type, const char *name, size_t indent_le
 
         fprintf(output_file, "),\n");
     }
+}
+
+static void dump_struct(const_tree base_type, const char *name, size_t indent_level)
+{
+    if (NULL != name) {
+        if (was_dumped(name)) {
+            return;
+        }
+        // add it immediately, so if we find any back references into current struct, we don't
+        // dump it again.
+        add_to_dumped_structs(name);
+
+        fprintf(output_file, "%s = ", name);
+    }
+
+    gcc_assert(COMPLETE_TYPE_P(base_type));
+
+    gcc_assert(is_struct_or_union(base_type));
+    fprintf(output_file, "%s(", RECORD_TYPE == TREE_CODE(base_type) ? "Struct" : "Union");
+    if (NULL != name) {
+        fprintf(output_file, "'%s'", name);
+    } else {
+        fprintf(output_file, "None");
+    }
+    fprintf(output_file, ", %ld, {\n", TREE_INT_CST_LOW(TYPE_SIZE(base_type)));
+
+    dump_fields(TYPE_FIELDS(base_type), 0, indent_level);
 
     print_spaces(indent_level * 4);
     fprintf(output_file, "})");
