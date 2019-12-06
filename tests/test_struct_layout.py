@@ -144,3 +144,10 @@ def test_struct_function_ptrs():
 
     assert len(x.keys()) == 1
     assert x["f"] == (0, Pointer(64, Function()))
+
+
+def test_struct_anonymous_enum():
+    x = dump_struct_layout("struct x { enum { x = 5, } e; };", "x")["x"].fields
+
+    assert len(x.keys()) == 1
+    assert x["e"] == (0, Scalar(32, "anonymous enum", False))

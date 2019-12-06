@@ -9,6 +9,10 @@ union my_union {
     char y;
 };
 
+enum e1 {
+    x = 5,
+};
+
 struct outer {
     struct {
         int a;
@@ -40,6 +44,12 @@ struct test_struct {
     struct other_struct z;
 
     union my_union u;
+
+    enum e1 e1;
+
+    enum {
+        y = 1,
+    } e2;
 
     int twodim[3][2];
 

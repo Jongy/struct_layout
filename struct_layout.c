@@ -294,7 +294,16 @@ static void dump_fields(tree first_field, size_t base_offset, size_t indent_leve
                 }
                 fprintf(output_file, "%s(%zu, '%s')", field_class, field_size, IDENTIFIER_POINTER(type_name));
             } else {
-                fprintf(output_file, "Scalar(%zu, '%s', %s)", field_size, IDENTIFIER_POINTER(type_name),
+                const char *type_name_s;
+                if (NULL == type_name) {
+                    gcc_assert(TREE_CODE(field_type) == ENUMERAL_TYPE);
+
+                    type_name_s = "anonymous enum";
+                } else {
+                    type_name_s = IDENTIFIER_POINTER(type_name);
+                }
+
+                fprintf(output_file, "Scalar(%zu, '%s', %s)", field_size, type_name_s,
                     TYPE_UNSIGNED(field_type) ? "False" : "True");
             }
         }
