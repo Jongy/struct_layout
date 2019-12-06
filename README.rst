@@ -42,17 +42,20 @@ The dictionary maps field names to tuples of (offset, field type). For unions, t
 
 The objects & field types are defined in ``fields.py``.
 
-All types (but ``Void``) have a ``total_size`` attribute, with their total size in bits. Other attributes vary between
-field types:
+All types (but ``Void``) have a ``total_size`` attribute, with their total size in bits. Other
+attributes vary between field types:
 
 * ``Scalar`` - scalars, they also have their basic type, like ``int`` or ``char`` or ``unsigned long int``.
+* ``Bitfield`` - used for bitfields, these only have the number of bits they occupy.
 * ``StructField`` - struct/union fields, these have the struct name they are referencing.
-* ``Pointer`` - for all types of pointers, these have their "pointee" type, which may be e.g ``Scalar`` or
+  If the field is based on an anonymous struct, then its ``Struct`` object itself is given.
+* ``Pointer`` - for all types of pointers, these have their "pointee" type, which may be e.g ``
+  ``Scalar`` or another ``Pointer``.
 * ``Void`` - ``void`` type, for example in ``void *``.
 * ``Function`` - pointee type in case of function pointers.
   another ``Pointer`` or anything else.
-* ``Array`` - for arrays, these have the number of elements and the type of each element (similar to the
-  pointee type of ``Pointer``)
+* ``Array`` - for arrays, these have the number of elements and the type of each element (
+  similar to the pointee type of ``Pointer``)
 
 For example, the struct ``struct s { int x; char y; void *p; };`` on my x86-64 evaluates to:
 
@@ -83,6 +86,8 @@ It will take some more work for this plugin to handle complex structs such as ``
 
 Tests
 =====
+
+This was tested on GCC 7.4.0 and GCC 9.2.0.
 
 .. code-block:: bash
 
