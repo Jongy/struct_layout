@@ -17,7 +17,7 @@ run: $(PLUGIN) tests/test_struct.c
 	@cat layout.txt
 
 test: $(PLUGIN)
-	python -m pytest -v tests
+	python3 -m pytest -v tests
 
 clean:
 	rm -f $(PLUGIN)
