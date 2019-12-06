@@ -365,7 +365,8 @@ static void plugin_finish_type(void *event_data, void *user_data)
         // anonymous, ignore.
         return;
     }
-    if (strcmp(name, target_struct)) {
+
+    if (NULL != target_struct && strcmp(name, target_struct)) {
         // bye
         return;
     }
@@ -408,6 +409,8 @@ int plugin_init(struct plugin_name_args *plugin_info, struct plugin_gcc_version 
         if (0 == strcmp(plugin_info->argv[i].key, "output")) {
             output = plugin_info->argv[i].value;
         }
+
+        // can be given with -fplugin-arg-struct_layout-struct=<struct>
         if (0 == strcmp(plugin_info->argv[i].key, "struct")) {
             target_struct = xstrdup(plugin_info->argv[i].value);
         }
@@ -415,11 +418,6 @@ int plugin_init(struct plugin_name_args *plugin_info, struct plugin_gcc_version 
 
     if (NULL == output) {
         fprintf(stderr, "structlayout plugin: missing parameter: -fplugin-arg-struct_layout-output=<output>\n");
-        exit(EXIT_FAILURE);
-    }
-
-    if (NULL == target_struct) {
-        fprintf(stderr, "structlayout plugin: missing parameter: -fplugin-arg-struct_layout-struct=<struct>\n");
         exit(EXIT_FAILURE);
     }
 

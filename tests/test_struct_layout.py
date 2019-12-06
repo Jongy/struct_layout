@@ -11,10 +11,13 @@ STRUCT_LAYOUT_SO = os.path.abspath(
 
 
 def run_gcc(code_path, output_path, struct_name):
-    subprocess.check_call(["gcc", "-fplugin={}".format(STRUCT_LAYOUT_SO),
-                           "-fplugin-arg-struct_layout-output={}".format(output_path),
-                           "-fplugin-arg-struct_layout-struct={}".format(struct_name),
-                           "-c", "-o", "/dev/null", "-x", "c", code_path])
+    args = ["gcc", "-fplugin={}".format(STRUCT_LAYOUT_SO),
+            "-fplugin-arg-struct_layout-output={}".format(output_path)]
+    if struct_name:
+        args.append("-fplugin-arg-struct_layout-struct={}".format(struct_name))
+    args += ["-c", "-o", "/dev/null", "-x", "c", code_path]
+
+    subprocess.check_call(args)
 
 
 def dump_struct_layout(struct_code, struct_name):
@@ -126,6 +129,18 @@ def test_struct_dump_only_necessary():
     assert b["y"] == (0, Scalar(32, "int", True))
 
     assert "a" not in decls
+
+
+def test_struct_dump_all():
+    decls = dump_struct_layout("struct a { int x; }; struct b { int y; };", None)
+
+    b = decls["b"].fields
+    assert len(b.keys()) == 1
+    assert b["y"] == (0, Scalar(32, "int", True))
+
+    b = decls["a"].fields
+    assert len(b.keys()) == 1
+    assert b["x"] == (0, Scalar(32, "int", True))
 
 
 def test_struct_bitfields():
