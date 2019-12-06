@@ -211,7 +211,9 @@ static void dump_fields(tree first_field, size_t base_offset, size_t indent_leve
             field_name = IDENTIFIER_POINTER(decl_name);
         } else {
             // unnamed bitfield, ignore and continue
-            if (DECL_BIT_FIELD(field)) {
+            // I've also seen integers used for struct padding, so I'll allow that as well.
+            // (e.g linux/include/uapi/linux/timex.h timex)
+            if (DECL_BIT_FIELD(field) || TREE_CODE(field_type) == INTEGER_TYPE) {
                 continue;
             }
 
