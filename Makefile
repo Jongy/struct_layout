@@ -13,7 +13,8 @@ $(PLUGIN): struct_layout.c
 
 run: $(PLUGIN) tests/test_struct.c
 	gcc -fplugin=./$(PLUGIN) -fplugin-arg-struct_layout-output=layout.txt -fplugin-arg-struct_layout-struct=test_struct tests/test_struct.c -c
-	cat layout.txt
+	@echo
+	@cat layout.txt
 
 test: $(PLUGIN)
 	python -m pytest -v tests

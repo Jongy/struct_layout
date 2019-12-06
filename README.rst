@@ -5,14 +5,29 @@ Build
 
 Just hit ``make``.
 
-Using
-=====
+You can build in debug mode with ``make DEBUG=1``; You'll get debugging information printed to stderr
+(basically the internal GCC tree object of every field processed).
+
+Quick example
+=============
+
+There's ``test_struct`` struct in ``tests/test_struct.c``. This struct exploits many of the peculiarities allowed in
+struct definitions. You can check it out, then hit ``make run`` to dump that weird struct, and see how different
+fields ended up in the generated dump.
+
+Using it
+========
+
+On a specific struct ``my_struct`` from a specific file ``myfile.c``:
 
 .. code-block:: bash
 
-    $ gcc -fplugin=./struct_layout.so -fplugin-arg-struct_layout-output=layout.txt -fplugin-arg-struct_layout-struct=test_struct tests/test_struct.c -c
+    $ gcc -fplugin=./struct_layout.so -fplugin-arg-struct_layout-output=layout.txt -fplugin-arg-struct_layout-struct=my_struct myfile.c -c
 
-You'll have your results in ``layout.txt``. With a lot of debug information printed to stderr as well :)
+You'll have your results in ``layout.txt``.
+
+You can omit ``-fplugin-arg-struct_layout-struct`` to dump all defined structs instead (all structs defined in your C
+file, and *all* structs defined in *all* headers included)
 
 Using the output
 ----------------
