@@ -142,15 +142,21 @@ static bool is_basic_type(tree type)
 
 static void print_array_type(const tree field_type, size_t sizeof_array)
 {
+    const size_t elem_size = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(TREE_TYPE(field_type)));
     size_t num_elem;
 
-    // is it a flexible array?
-    if (TYPE_SIZE_UNIT(field_type)) {
-        const size_t elem_size = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(TREE_TYPE(field_type)));
+    if (NULL == TYPE_SIZE_UNIT(field_type)) {
+        // it is a flexible array
+        // linux, btw, has a more complex "is_flexible_array" function in the randomize_layout_plugin.
+        // but until proven wrong, that ^^ check is sufficient.
+        num_elem = 0;
+    } else if (0 == elem_size) {
+        // probably an empty struct (happens in linux with lock_class_key)
+        // let it be 0 elements as well. not that it matters...
+        num_elem = 0;
+    } else {
         // it might be 0 / elem_size, in which case we also end up with num_elem = 0.
         num_elem = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(field_type)) / elem_size;
-    } else {
-        num_elem = 0;
     }
 
     fprintf(output_file, "Array(%zu, %zu, ", sizeof_array, num_elem);
