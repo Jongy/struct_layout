@@ -127,6 +127,7 @@ static bool is_basic_type(tree type)
     switch (TREE_CODE(type)) {
     case INTEGER_TYPE:
     case BOOLEAN_TYPE:
+    case ENUMERAL_TYPE:
     case REAL_TYPE:
     case RECORD_TYPE:
     case UNION_TYPE:
