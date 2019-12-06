@@ -141,8 +141,16 @@ static bool is_basic_type(tree type)
 
 static void print_array_type(const tree field_type, size_t sizeof_array)
 {
-    const size_t elem_size = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(TREE_TYPE(field_type)));
-    const size_t num_elem = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(field_type)) / elem_size;
+    size_t num_elem;
+
+    // is it a flexible array?
+    if (TYPE_SIZE_UNIT(field_type)) {
+        const size_t elem_size = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(TREE_TYPE(field_type)));
+        // it might be 0 / elem_size, in which case we also end up with num_elem = 0.
+        num_elem = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(field_type)) / elem_size;
+    } else {
+        num_elem = 0;
+    }
 
     fprintf(output_file, "Array(%zu, %zu, ", sizeof_array, num_elem);
 }

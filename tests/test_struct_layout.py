@@ -63,6 +63,18 @@ def test_struct_array_two_dimensions():
     assert s["arr"] == (0, Array(5 * 2 * 32, 5, Array(2 * 32, 2, Scalar(32, "int", True))))
 
 
+def test_struct_array_flexible_and_zero():
+    s = dump_struct_layout("struct x { int arr[0]; };", "x")["x"].fields
+    assert len(s.keys()) == 1
+    assert s["arr"] == (0, Array(0, 0, Scalar(32, "int", True)))
+
+    # flexible array can't be the first field.
+    s = dump_struct_layout("struct x { int y; int arr[]; };", "x")["x"].fields
+    assert len(s.keys()) == 2
+    assert s["y"] == (0, Scalar(32, "int", True))
+    assert s["arr"] == (32, Array(0, 0, Scalar(32, "int", True)))
+
+
 def test_struct_struct():
     s = (dump_struct_layout("struct a { int x; }; struct b { struct a aa; int xx; };", "b")
          ["b"].fields)

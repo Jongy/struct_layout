@@ -17,6 +17,8 @@ struct outer {
         int c;
         int d;
     };
+
+    int ar[];
 };
 
 struct test_struct {
@@ -41,4 +43,6 @@ struct test_struct {
     int bitfield3: 2;
 
     struct outer o;
+
+    int arr[0];
 };
