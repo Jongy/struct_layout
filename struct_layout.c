@@ -241,6 +241,7 @@ static void dump_fields(tree first_field, size_t base_offset, size_t indent_leve
             const size_t field_type_size = get_field_size(field_type);
 
             switch (TREE_CODE(field_type)) {
+            case VECTOR_TYPE:
             case ARRAY_TYPE:
                 print_array_type(field_type, field_type_size);
                 break;
