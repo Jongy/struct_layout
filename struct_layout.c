@@ -322,6 +322,10 @@ static void dump_struct(const_tree base_type, const char *name, size_t indent_le
         add_to_dumped_structs(name);
 
         fprintf(output_file, "'%s': ", name);
+    } else {
+        // indent != 0 means this struct is dumped inline in a StructField.
+        // if indent == 0 and the struct has no name, something is wrong.
+        gcc_assert(indent_level != 0);
     }
 
     gcc_assert(COMPLETE_TYPE_P(base_type));
