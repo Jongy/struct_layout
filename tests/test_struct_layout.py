@@ -35,7 +35,7 @@ def dump_struct_layout(struct_code, struct_name):
         print(struct_def)  # for debugging
         # hehe :(
         exec(struct_def, load_globals)
-        return load_globals
+        return load_globals["structs"]
 
 
 def test_struct_basic():
@@ -87,13 +87,13 @@ def test_struct_struct():
 
 
 def test_struct_union():
-    decls = dump_struct_layout("union u { int x; char c; long l; }; struct c { union u u; };", "c")
+    structs = dump_struct_layout("union u { int x; char c; long l; }; struct c { union u u; };", "c")
 
-    c = decls["c"].fields
+    c = structs["c"].fields
     assert len(c.keys()) == 1
     assert c["u"] == (0, StructField(64, "u"))
 
-    u = decls["u"]
+    u = structs["u"]
     assert u.total_size == 64
     u = u.fields
     assert len(u.keys()) == 3
@@ -110,25 +110,25 @@ def test_struct_anonymous_union():
 
 
 def test_struct_recursive_dump():
-    decls = dump_struct_layout("struct a { int x; }; struct b { struct a a; }; ", "b")
+    structs = dump_struct_layout("struct a { int x; }; struct b { struct a a; }; ", "b")
 
-    b = decls["b"].fields
+    b = structs["b"].fields
     assert len(b.keys()) == 1
     assert b["a"] == (0, StructField(32, "a"))
 
-    a = decls[b["a"][1].type].fields
+    a = structs[b["a"][1].type].fields
     assert len(a.keys()) == 1
     assert a["x"] == (0, Scalar(32, "int", True))
 
 
 def test_struct_dump_only_necessary():
-    decls = dump_struct_layout("struct a { int x; }; struct b { int y; };", "b")
+    structs = dump_struct_layout("struct a { int x; }; struct b { int y; };", "b")
 
-    b = decls["b"].fields
+    b = structs["b"].fields
     assert len(b.keys()) == 1
     assert b["y"] == (0, Scalar(32, "int", True))
 
-    assert "a" not in decls
+    assert "a" not in structs
 
 
 def test_struct_dump_all():

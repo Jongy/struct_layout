@@ -321,7 +321,7 @@ static void dump_struct(const_tree base_type, const char *name, size_t indent_le
         // dump it again.
         add_to_dumped_structs(name);
 
-        fprintf(output_file, "%s = ", name);
+        fprintf(output_file, "'%s': ", name);
     }
 
     gcc_assert(COMPLETE_TYPE_P(base_type));
@@ -340,7 +340,7 @@ static void dump_struct(const_tree base_type, const char *name, size_t indent_le
     print_spaces(indent_level * 4);
     fprintf(output_file, "})");
     if (indent_level == 0) {
-        fputc('\n', output_file);
+        fprintf(output_file, ",\n");
     }
 }
 
@@ -392,6 +392,8 @@ static void plugin_finish(void *event_data, void *user_data)
         iter = iter->next;
     }
 
+    fprintf(output_file, "}\n");
+
     fflush(output_file);
 }
 
@@ -420,6 +422,8 @@ int plugin_init(struct plugin_name_args *plugin_info, struct plugin_gcc_version 
         perror(output);
         exit(EXIT_FAILURE);
     }
+
+    fprintf(output_file, "structs = {\n");
 
     register_callback(plugin_info->base_name, PLUGIN_FINISH_TYPE, plugin_finish_type, NULL);
     register_callback(plugin_info->base_name, PLUGIN_FINISH, plugin_finish, NULL);
