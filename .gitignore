@@ -4,6 +4,7 @@ linux/.dummy.*
 linux/Module.symvers
 linux/modules.order
 linux/layout.txt
+linux/.tmp_versions
 
 struct_layout.so
 test_struct.o
