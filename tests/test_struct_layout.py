@@ -166,3 +166,31 @@ def test_struct_anonymous_enum():
 
     assert len(x.keys()) == 1
     assert x["e"] == (0, Scalar(32, "anonymous enum", False))
+
+
+def test_struct_typedefs():
+    structs = dump_struct_layout(
+        "struct s { int y; }; typedef struct s s_t; struct x { s_t s1; };", None)
+
+    assert len(structs.keys()) == 2
+    x = structs["x"].fields
+    assert x["s1"] == (0, StructField(32, "s"))
+    # not by typedef
+    assert "s" in structs
+    assert "s_t" not in structs
+
+    structs = dump_struct_layout(
+        "typedef struct { int y; } s_t; struct x { s_t s1; };", None)
+
+    assert len(structs.keys()) == 2
+    x = structs["x"].fields
+    assert x["s1"] == (0, StructField(32, "s_t"))
+    assert "s" not in structs
+    assert "s_t" in structs
+
+    # also for enums, they have special treatment
+    x = dump_struct_layout("typedef enum { y = 1, } e_t; struct x { e_t e1; };", "x")["x"].fields
+    assert x["e1"] == (0, Scalar(32, "e_t", False))
+
+    x = dump_struct_layout("typedef enum e { y = 1, } e_t; struct x { e_t e1; };", "x")["x"].fields
+    assert x["e1"] == (0, Scalar(32, "e", False))

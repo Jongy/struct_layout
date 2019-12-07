@@ -182,6 +182,26 @@ static bool is_struct_or_union(const_tree type)
     return RECORD_TYPE == TREE_CODE(type) || UNION_TYPE == TREE_CODE(type);
 }
 
+// returns the underlying type name for structs/unions/enums and their typedefs.
+// returns the typedef name if the underlying type doesn't have a name.
+static const char *get_type_name(const_tree type)
+{
+    gcc_assert(is_struct_or_union(type) || ENUMERAL_TYPE == TREE_CODE(type));
+    gcc_assert(TYPE_IDENTIFIER(type)); // must be named
+
+    // TYPE_MAIN_VARIANT might be different if, afaik:
+    // 1. type is a modified version of another type (with "const", "volatile", ...)
+    // 2. type is a typedefed version of another type (possibly with modifiers)
+    // anyway, we'll use the TYPE_MAIN_VARIANT name if possible.
+    const char *orig_name = ORIG_TYPE_NAME(type);
+    if (NULL != orig_name) {
+        return orig_name;
+    }
+
+    // then it must be named with a typedef
+    return IDENTIFIER_POINTER(TYPE_IDENTIFIER(type));
+}
+
 static void print_spaces(size_t n)
 {
     for (size_t i = 0; i < n; ++i) {
@@ -264,8 +284,7 @@ static void dump_fields(tree first_field, size_t base_offset, size_t indent_leve
 
         const size_t field_size = get_field_size(field_type);
 
-        tree type_name = TYPE_IDENTIFIER(field_type);
-        if (NULL == type_name && is_struct_or_union(field_type)) {
+        if (NULL == TYPE_IDENTIFIER(field_type) && is_struct_or_union(field_type)) {
             // anonymous definition of struct/union, just dump it.
             fprintf(output_file, "StructField(%zu, ", field_size);
             dump_struct(field_type, NULL, indent_level + 1);
@@ -275,9 +294,9 @@ static void dump_fields(tree first_field, size_t base_offset, size_t indent_leve
             if (is_struct_or_union(field_type)) {
                 // I assume that "tree" objects are alive basically forever.
                 add_to_dump_list(field_type);
-            }
 
-            if (TREE_CODE(field_type) == VOID_TYPE) {
+                fprintf(output_file, "StructField(%zu, '%s')", field_size, get_type_name(field_type));
+            } else if (TREE_CODE(field_type) == VOID_TYPE) {
                 fprintf(output_file, "Void()");
             } else if (DECL_BIT_FIELD(field)) {
                 // bitfields TREE_TYPE has no TYPE_IDENTIFIER.
@@ -286,16 +305,16 @@ static void dump_fields(tree first_field, size_t base_offset, size_t indent_leve
                 // function pointers
                 // TODO: print type & args
                 fprintf(output_file, "Function()");
-            } else if (is_struct_or_union(field_type)) {
-                fprintf(output_file, "StructField(%zu, '%s')", field_size, IDENTIFIER_POINTER(type_name));
             } else {
                 const char *type_name_s;
-                if (NULL == type_name) {
-                    gcc_assert(TREE_CODE(field_type) == ENUMERAL_TYPE);
-
-                    type_name_s = "anonymous enum";
+                if (TREE_CODE(field_type) == ENUMERAL_TYPE) {
+                    if (NULL == TYPE_IDENTIFIER(field_type)) {
+                        type_name_s = "anonymous enum";
+                    } else {
+                        type_name_s = get_type_name(field_type);
+                    }
                 } else {
-                    type_name_s = IDENTIFIER_POINTER(type_name);
+                    type_name_s = IDENTIFIER_POINTER(TYPE_IDENTIFIER(field_type));
                 }
 
                 fprintf(output_file, "Scalar(%zu, '%s', %s)", field_size, type_name_s,
@@ -358,18 +377,19 @@ static void plugin_finish_type(void *event_data, void *user_data)
         return;
     }
 
-    const char *name = ORIG_TYPE_NAME(type);
-    if (NULL == name) {
+    tree type_name = TYPE_IDENTIFIER(type);
+    if (NULL == type_name) {
         // anonymous, ignore.
         return;
     }
+    const char *type_name_s = IDENTIFIER_POINTER(type_name);
 
-    if (NULL != target_struct && strcmp(name, target_struct)) {
+    if (NULL != target_struct && strcmp(type_name_s, target_struct)) {
         // bye
         return;
     }
 
-    dump_struct(type, name, 0);
+    dump_struct(type, type_name_s, 0);
 }
 
 static void plugin_finish(void *event_data, void *user_data)
@@ -382,7 +402,10 @@ static void plugin_finish(void *event_data, void *user_data)
         // w/ a forward declaration.
         // (by the time a struct field is declared, the type must be complete)
         if (COMPLETE_TYPE_P(n->type)) {
-            dump_struct(n->type, ORIG_TYPE_NAME(n->type), 0);
+            // items added to the list are surely named.
+            gcc_assert(TYPE_IDENTIFIER(n->type));
+
+            dump_struct(n->type, get_type_name(n->type), 0);
         }
     }
 
