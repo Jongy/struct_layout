@@ -58,17 +58,6 @@ class StructField(Type):
         return self.type == other.type and super(StructField, self).__eq__(other)
 
 
-class UnionField(Type):
-    def __init__(self, total_size, type_):
-        super(UnionField, self).__init__(total_size)
-        self.type = type_
-
-    def __eq__(self, other):
-        if not isinstance(other, UnionField):
-            return NotImplemented
-
-        return self.type == other.type and super(UnionField, self).__eq__(other)
-
 
 class Function(Type):
     def __init__(self, type_=None):
