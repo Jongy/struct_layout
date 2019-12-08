@@ -4,33 +4,53 @@ import pytest
 from .test_struct_layout import dump_struct_layout
 
 from ..fields import Scalar, Function, Void
-from ..struct_accessor import partial_struct, set_accessors, update_structs, Ptr, StructPtr, ArrayPtr
+from ..struct_accessor import (partial_struct, set_accessors, update_structs, Ptr, StructPtr,
+                               ArrayPtr, sizeof, offsetof)
 
 
 MEM_BASE = 0x10000
 
+
 def make_accessors(data):
-    def p8(p):
-        print("u8 @ 0x{:x}".format(p))
-        return struct.unpack_from(">B", data, p - MEM_BASE)[0]
+    def p8(p, v=None):
+        if v is not None:
+            print("u8 @ 0x{:x} = {:x}".format(p, v))
+            data[p-MEM_BASE:p-MEM_BASE+1] = struct.pack(">B", v)
+        else:
+            print("u8 @ 0x{:x}".format(p))
+            return struct.unpack_from(">B", data, p - MEM_BASE)[0]
 
-    def p16(p):
-        print("u16 @ 0x{:x}".format(p))
-        return struct.unpack_from(">H", data, p - MEM_BASE)[0]
+    def p16(p, v=None):
+        if v is not None:
+            print("u16 @ 0x{:x} = {:x}".format(p, v))
+            data[p-MEM_BASE:p-MEM_BASE+2] = struct.pack(">H", v)
+        else:
+            print("u16 @ 0x{:x}".format(p))
+            return struct.unpack_from(">H", data, p - MEM_BASE)[0]
 
-    def p32(p):
-        print("u32 @ 0x{:x}".format(p))
-        return struct.unpack_from(">L", data, p - MEM_BASE)[0]
+    def p32(p, v=None):
+        if v is not None:
+            print("u32 @ 0x{:x} = {:x}".format(p, v))
+            data[p-MEM_BASE:p-MEM_BASE+4] = struct.pack(">L", v)
+        else:
+            print("u32 @ 0x{:x}".format(p))
+            return struct.unpack_from(">L", data, p - MEM_BASE)[0]
 
-    def p64(p):
-        print("u64 @ 0x{:x}".format(p))
-        return struct.unpack_from(">Q", data, p - MEM_BASE)[0]
+    def p64(p, v=None):
+        if v is not None:
+            print("u64 @ 0x{:x} = {:x}".format(p, v))
+            data[p-MEM_BASE:p-MEM_BASE+8] = struct.pack(">Q", v)
+        else:
+            print("u64 @ 0x{:x}".format(p))
+            return struct.unpack_from(">Q", data, p - MEM_BASE)[0]
 
     return p8, p16, p32, p64
 
 
 def set_memory_struct(fmt, *args):
-    set_accessors(*make_accessors(struct.pack(fmt, *args)))
+    data = bytearray(struct.pack(fmt, *args))
+    set_accessors(*make_accessors(data))
+    return data
 
 
 def test_accessor_scalar():
@@ -120,14 +140,84 @@ def test_accessor_pointer_to_array():
 def test_accessor_pointer_struct():
     set_memory_struct(">QLB3x", MEM_BASE + 8, 555, 2)
 
-    structs = dump_struct_layout("struct y { int n; char c; }; struct x { struct y *yptr; };",
-                                None)
+    structs = dump_struct_layout("struct y { int n; char c; }; struct x { struct y *yptr; };", None)
     update_structs(structs)
 
     s = StructPtr(structs["x"], MEM_BASE)
 
-    print(s.yptr)
-    print(StructPtr(structs["y"], MEM_BASE + 8))
     assert s.yptr == StructPtr(structs["y"], MEM_BASE + 8)
     assert s.yptr.n == 555
     assert s.yptr.c == 2
+
+
+def test_accessor_set_scalar():
+    set_memory_struct(">Bxh", 0, 0)
+
+    s = partial_struct(dump_struct_layout(
+        "struct x { unsigned char a; short sign; };", "x")["x"])(MEM_BASE)
+
+    assert s.a == 0
+    assert s.sign == 0
+
+    s.a = 200  # unsigned
+    s.sign = -3254  # signed
+
+    assert s.a == 200
+    assert s.sign == -3254
+
+
+def test_accessor_set_array():
+    mem = set_memory_struct(">BBBBB", 0, 0, 0, 0, 0)
+    print(mem)
+    s = partial_struct(dump_struct_layout("struct x { char arr[5] };", "x")["x"])(MEM_BASE)
+
+    for i in range(0, len(s.arr)):
+        s.arr[i] = i + 1
+
+    assert mem == b"\x01\x02\x03\x04\x05"
+
+
+def test_accessor_set_pointer():
+    set_memory_struct(">QL", 0, 5)
+
+    s = partial_struct(dump_struct_layout("struct x { int *ptr; int x; };", "x")["x"])(MEM_BASE)
+
+    assert s.ptr == Ptr(Scalar(32, "int", True), 0)
+
+    s.ptr = MEM_BASE + 8
+
+    assert s.ptr[0] == s.x
+
+
+def test_accessor_set_invalid():
+    set_memory_struct("")
+
+    s = partial_struct(dump_struct_layout(
+        "struct x { struct { int a; } b; int arr[5]; };", "x")["x"])(MEM_BASE)
+
+    with pytest.raises(TypeError):
+        s.b = 5
+
+    with pytest.raises(TypeError):
+        s.arr = 5
+
+
+def test_accessor_sizeof():
+    x = dump_struct_layout("struct x { int x; char c; int arr[3]; void *p; };", "x")["x"]
+
+    assert sizeof(x, "x") == 4
+    assert sizeof(x, "c") == 1
+    assert sizeof(x, "arr") == 12
+    assert sizeof(x, "p") == 8
+
+    # padding, twice :(
+    assert sizeof(x) == 4 + 1 + 3 + 12 + 4 + 8
+
+
+def test_accessor_offsetof():
+    x = dump_struct_layout("struct x { int x; char c; int arr[3]; void *p; };", "x")["x"]
+
+    assert offsetof(x, "x") == 0
+    assert offsetof(x, "c") == 4
+    assert offsetof(x, "arr") == 8
+    assert offsetof(x, "p") == 24

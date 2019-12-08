@@ -1,4 +1,4 @@
-from .fields import *
+from .fields import Type, Scalar, Bitfield, Function, Void, Pointer, StructField, Array
 
 # I know it's weird to have such globals, but wrapping them in an object will make
 # all the other classes cumbersome with the need to pass it around.
@@ -18,31 +18,41 @@ def update_structs(structs):
     STRUCTS.update(structs)
 
 
-def as_signed(n, bits):
+def _as_signed(n, bits):
     if n >= (1 << (bits - 1)) - 1:
         n -= (1 << bits)
     return n
 
 
-def make_addr(base, offset, bitfield=False):
+def _as_unsigned(n, bits):
+    if n < 0:
+        n += (1 << bits)
+    return n
+
+
+def _make_addr(base, offset, bitfield=False):
     return base + offset // 8
 
 
-def lookup_struct(s):
+def _lookup_struct(s):
     if isinstance(s, str):
         return STRUCTS[s]
     return s
 
 
-def accessor(field, base, offset):
+def _access_addr(field, base, offset):
     if 0 == base:
         raise ValueError("NULL deref! offset {!r} type {!r}".format(offset, field))
-    addr = make_addr(base, offset)
+    return _make_addr(base, offset)
+
+
+def _read_accessor(field, base, offset):
+    addr = _access_addr(field, base, offset)
 
     if isinstance(field, Scalar):
         value = ACCESSORS[field.total_size](addr)
         if field.signed:
-            value = as_signed(value, field.total_size)
+            value = _as_signed(value, field.total_size)
         return value
 
     elif isinstance(field, Bitfield):
@@ -56,17 +66,39 @@ def accessor(field, base, offset):
         ptr = ACCESSORS[field.total_size](addr)
         pt = field.pointed_type
         if isinstance(pt, StructField):
-            return StructPtr(lookup_struct(pt.type), ptr)
+            return StructPtr(_lookup_struct(pt.type), ptr)
         elif isinstance(pt, Array):
             return ArrayPtr(ptr, pt.num_elem, pt.elem_type)
         else:
             return Ptr(pt, ptr)
     elif isinstance(field, StructField):
-        return StructPtr(lookup_struct(field.type), addr)
+        return StructPtr(_lookup_struct(field.type), addr)
     elif isinstance(field, Array):
         return ArrayPtr(addr, field.num_elem, field.elem_type)
     else:
-        raise NotImplementedError("accessor for {!r}".format(field))
+        raise NotImplementedError("_read_accessor for {!r}".format(field))
+
+
+def _write_accessor(field, base, offset, value):
+    addr = _access_addr(field, base, offset)
+
+    if isinstance(field, Scalar):
+        if field.signed:
+            value = _as_unsigned(value, field.total_size)
+        ACCESSORS[field.total_size](addr, value)
+    elif isinstance(field, Bitfield):
+        # TODO
+        return NotImplemented
+    elif isinstance(field, Pointer):
+        ACCESSORS[field.total_size](addr, value)
+    # give more indicative errors for struct / array
+    elif isinstance(field, StructField):
+        # could be done with a memcpy though.
+        raise TypeError("Can't set a struct! Please set its fields instead")
+    elif isinstance(field, Array):
+        raise TypeError("Can't set an array! Please set its elements instead")
+    else:
+        raise NotImplementedError("_write_accessor for {!r}".format(field))
 
 
 class Ptr(object):
@@ -75,10 +107,13 @@ class Ptr(object):
         self._ptr = ptr
 
     def p(self):
-        return accessor(self._type, self._ptr, 0)
+        return _read_accessor(self._type, self._ptr, 0)
 
     def __getitem__(self, key):
-        return accessor(self._type, self._ptr, key * self._type.total_size)
+        return _read_accessor(self._type, self._ptr, key * self._type.total_size)
+
+    def __setitem__(self, key, value):
+        return _write_accessor(self._type, self._ptr, key * self._type.total_size, value)
 
     def __eq__(self, other):
         if not isinstance(other, Ptr):
@@ -93,14 +128,20 @@ class Ptr(object):
 class ArrayPtr(object):
     def __init__(self, base, num_elem, elem_type):
         self._base = base
-        self._num_elem = num_elem
+        self._num_elem = num_elem or None
         self._elem_type = elem_type
 
-    def __getitem__(self, key):
+    def __check_index(self, key):
         if self._num_elem and not (0 <= key < self._num_elem):
             raise ValueError("Index {!r} not in range: 0 - {!r}".format(key, self._num_elem - 1))
 
-        return accessor(self._elem_type, self._base, key * self._elem_type.total_size)
+    def __getitem__(self, key):
+        self.__check_index(key)
+        return _read_accessor(self._elem_type, self._base, key * self._elem_type.total_size)
+
+    def __setitem__(self, key, value):
+        self.__check_index(key)
+        return _write_accessor(self._elem_type, self._base, key * self._elem_type.total_size, value)
 
     def __eq__(self, other):
         if not isinstance(other, ArrayPtr):
@@ -109,39 +150,82 @@ class ArrayPtr(object):
         return (self._base == other._base and self._num_elem == other._num_elem and
                 self._elem_type == other._elem_type)
 
+    def __len__(self):
+        return self._num_elem
+
     def __repr__(self):
         return "ArrayPtr(0x{:x}, {!r}, {!r})".format(self._base, self._num_elem, self._elem_type)
 
 
+def _get_sp_struct(sp):
+    return super(StructPtr, sp).__getattribute__("____struct")
+
+
+def _get_sp_ptr(sp):
+    return super(StructPtr, sp).__getattribute__("____ptr")
+
+
+def _get_struct_field(sp, attr):
+    struct = _get_sp_struct(sp)
+
+    try:
+        return struct.fields[attr]
+    except KeyError:
+        raise KeyError("No field named {!r} in {!r}".format(attr, struct.name))
+
+
 class StructPtr(object):
+    """
+    this class is pure python hell
+    """
+
     def __init__(self, struct, ptr):
-        self.____struct = struct
-        self.____ptr = ptr
+        super(StructPtr, self).__setattr__("____struct", struct)
+        super(StructPtr, self).__setattr__("____ptr", ptr)
 
     def __getattr__(self, attr):
-        try:
-            f = self.____struct.fields[attr]
-        except KeyError:
-            raise KeyError("No field named {!r} in {!r}"
-                           .format(attr, self.____struct.name))
+        f = _get_struct_field(self, attr)
+        return _read_accessor(f[1], _get_sp_ptr(self), f[0])
 
-        return accessor(f[1], self.____ptr, f[0])
+    def __setattr__(self, attr, value):
+        f = _get_struct_field(self, attr)
+        return _write_accessor(f[1], _get_sp_ptr(self), f[0], value)
 
     def __dir__(self):
         # TODO fix this, doesn't really work
-        return list(self.____struct.fields.keys())
+        return list(_get_sp_struct(self).fields.keys())
 
     def __eq__(self, other):
         if not isinstance(other, StructPtr):
             return NotImplemented
 
-        return self.____struct == other.____struct and self.____ptr == other.____ptr
+        return (_get_sp_struct(self) == _get_sp_struct(other)
+                and _get_sp_ptr(self) == _get_sp_ptr(other))
 
     def __repr__(self):
-        return "StructPtr(0x{:x}, {!r})".format(self.____ptr, self.____struct)
+        return "StructPtr(0x{:x}, {!r})".format(_get_sp_ptr(self), _get_sp_struct(self))
 
 
 def partial_struct(struct):
     def p(ptr):
-        return StructPtr(lookup_struct(struct), ptr)
+        return StructPtr(_lookup_struct(struct), ptr)
     return p
+
+
+def sizeof(struct, field_name=None):
+    if field_name:
+        if isinstance(struct.fields[field_name][1], Bitfield):
+            raise TypeError("Can't take the size of bit fields!")
+
+        n = struct.fields[field_name][1].total_size
+    else:
+        n = struct.total_size
+
+    return n // 8
+
+
+def offsetof(struct, field_name):
+    if isinstance(struct.fields[field_name][1], Bitfield):
+        raise TypeError("Can't take the offset of bit fields!")
+
+    return struct.fields[field_name][0] // 8
