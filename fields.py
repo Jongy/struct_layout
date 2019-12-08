@@ -19,6 +19,9 @@ class Void(Type):
 
         return super(Void, self).__eq__(other)
 
+    def __repr__(self):
+        return "Void()"
+
 
 class Bitfield(Type):
     def __init__(self, total_size):
@@ -29,6 +32,9 @@ class Bitfield(Type):
             return NotImplemented
 
         return super(Bitfield, self).__eq__(other)
+
+    def __repr__(self):
+        return "Bitfield({!r})".format(self.total_size)
 
 
 class Scalar(Type):
@@ -45,6 +51,9 @@ class Scalar(Type):
         return (self.type == other.type and self.signed == other.signed
                 and super(Scalar, self).__eq__(other))
 
+    def __repr__(self):
+        return "Scalar({!r}, {!r}, {!r})".format(self.total_size, self.type, self.signed)
+
 
 class StructField(Type):
     def __init__(self, total_size, type_):
@@ -57,6 +66,8 @@ class StructField(Type):
 
         return self.type == other.type and super(StructField, self).__eq__(other)
 
+    def __repr__(self):
+        return "StructField({!r}, {!r})".format(self.total_size, self.type)
 
 
 class Function(Type):
@@ -70,6 +81,9 @@ class Function(Type):
 
         return self.type == other.type and super(Function, self).__eq__(other)
 
+    def __repr__(self):
+        return "Function({!r})".format(self.type)
+
 
 class Pointer(Type):
     def __init__(self, total_size, pointed_type):
@@ -81,6 +95,9 @@ class Pointer(Type):
             return NotImplemented
 
         return self.pointed_type == other.pointed_type and super(Pointer, self).__eq__(other)
+
+    def __repr__(self):
+        return "Pointer({!r}, {!r})".format(self.total_size, self.pointed_type)
 
 
 class Array(Type):
@@ -96,6 +113,9 @@ class Array(Type):
         return (self.num_elem == other.num_elem and self.elem_type == other.elem_type
                 and super(Array, self).__eq__(other))
 
+    def __repr__(self):
+        return "Array({!r}, {!r}, {!r})".format(self.total_size, self.num_elem, self.elem_type)
+
 
 class Struct(Type):
     def __init__(self, name, total_size, fields):
@@ -109,3 +129,7 @@ class Struct(Type):
 
         return (self.name == other.name and self.fields == other.fields
                 and super(Struct, self).__eq__(other))
+
+    def __repr__(self):
+        # fields are too much, don't print them
+        return "Struct({!r}, {!r}, ...)".format(self.total_size, self.name, self.fields)
