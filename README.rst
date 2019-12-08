@@ -89,14 +89,19 @@ To generate for a specific struct:
 
 .. code-block:: bash
 
-    $ cd linux
-    $ python dump_struct.py task_struct linux/sched.h layout.txt
+    $ python linux/dump_structs.py layout.txt --struct task_struct --header linux/sched.h
 
 You can set the ``KDIR`` environment variable to run against a specific kernel tree (by default, runs against your local).
 
 .. code-block:: bash
 
     $ KDIR=/path/to/kernel python dump_struct.py ...
+
+To dump all structs (based on a set of headers I've collected in ``include_all.c``) you can run:
+
+.. code-block:: bash
+
+    $ python linux/dump_structs.py all.txt
 
 Using the accessors
 ===================
