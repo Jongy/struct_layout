@@ -142,7 +142,7 @@ static bool is_basic_type(tree type)
 
 static void print_array_type(const tree field_type, size_t sizeof_array)
 {
-    const size_t elem_size = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(TREE_TYPE(field_type)));
+    const size_t elem_size = tree_to_uhwi(TYPE_SIZE_UNIT(TREE_TYPE(field_type)));
     size_t num_elem;
 
     if (NULL == TYPE_SIZE_UNIT(field_type)) {
@@ -156,7 +156,7 @@ static void print_array_type(const tree field_type, size_t sizeof_array)
         num_elem = 0;
     } else {
         // it might be 0 / elem_size, in which case we also end up with num_elem = 0.
-        num_elem = TREE_INT_CST_LOW(TYPE_SIZE_UNIT(field_type)) / elem_size;
+        num_elem = tree_to_uhwi(TYPE_SIZE_UNIT(field_type)) / elem_size;
     }
 
     fprintf(output_file, "Array(%zu, %zu, ", sizeof_array, num_elem);
@@ -171,7 +171,7 @@ static void print_pointer_type(size_t size)
 static size_t get_field_size(const tree field_type)
 {
     if (TYPE_SIZE(field_type)) {
-        return TREE_INT_CST_LOW(TYPE_SIZE(field_type));
+        return tree_to_uhwi(TYPE_SIZE(field_type));
     } else {
         return 0;
     }
@@ -232,11 +232,11 @@ static void dump_fields(tree first_field, size_t base_offset, size_t indent_leve
         size_t offset = base_offset;
         tree t_offset = DECL_FIELD_OFFSET(field);
         gcc_assert(TREE_CODE(t_offset) == INTEGER_CST && TREE_CONSTANT(t_offset));
-        offset += TREE_INT_CST_LOW(t_offset) * 8;
+        offset += tree_to_uhwi(t_offset) * 8;
         // add bit offset. there's an explanation about why it's required, see macro declaration in tree.h
         tree t_bit_offset = DECL_FIELD_BIT_OFFSET(field);
         gcc_assert(TREE_CODE(t_bit_offset) == INTEGER_CST && TREE_CONSTANT(t_bit_offset));
-        offset += TREE_INT_CST_LOW(t_bit_offset);
+        offset += tree_to_uhwi(t_bit_offset);
 
         // field name
         const char *field_name;
@@ -308,7 +308,7 @@ static void dump_fields(tree first_field, size_t base_offset, size_t indent_leve
                 fprintf(output_file, "Void()");
             } else if (DECL_BIT_FIELD(field)) {
                 // bitfields TREE_TYPE has no TYPE_IDENTIFIER.
-                fprintf(output_file, "Bitfield(%ld)", TREE_INT_CST_LOW(DECL_SIZE(field)));
+                fprintf(output_file, "Bitfield(%ld)", tree_to_uhwi(DECL_SIZE(field)));
             } else if (TREE_CODE(field_type) == FUNCTION_TYPE) {
                 // function pointers
                 // TODO: print type & args
@@ -364,7 +364,7 @@ static void dump_struct(const_tree base_type, const char *name, size_t indent_le
     } else {
         fprintf(output_file, "None");
     }
-    fprintf(output_file, ", %ld, {\n", TREE_INT_CST_LOW(TYPE_SIZE(base_type)));
+    fprintf(output_file, ", %ld, {\n", tree_to_uhwi(TYPE_SIZE(base_type)));
 
     dump_fields(TYPE_FIELDS(base_type), 0, indent_level);
 
