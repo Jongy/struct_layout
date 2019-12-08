@@ -1,4 +1,4 @@
-from .fields import Type, Scalar, Bitfield, Function, Void, Pointer, StructField, Array
+from python.fields import Scalar, Bitfield, Function, Void, Pointer, StructField, Array
 
 # I know it's weird to have such globals, but wrapping them in an object will make
 # all the other classes cumbersome with the need to pass it around.
@@ -19,7 +19,7 @@ def update_structs(structs):
 
 
 def _as_signed(n, bits):
-    if n >= (1 << (bits - 1)) - 1:
+    if n > (1 << (bits - 1)) - 1:
         n -= (1 << bits)
     return n
 
@@ -79,10 +79,20 @@ def _read_accessor(field, base, offset):
         raise NotImplementedError("_read_accessor for {!r}".format(field))
 
 
+def _check_value_overflow(value, bits, signed):
+    if signed:
+        if not -(1 << bits) <= value < (1 << (bits - 1)):
+            raise ValueError("{!r} doesn't fit in signed {}-bits!".format(value, bits))
+    else:
+        if not (0 <= value < (1 << bits)):
+            raise ValueError("{!r} doesn't fit in unsigned {}-bits!".format(value, bits))
+
+
 def _write_accessor(field, base, offset, value):
     addr = _access_addr(field, base, offset)
 
     if isinstance(field, Scalar):
+        _check_value_overflow(value, field.total_size, field.signed)
         if field.signed:
             value = _as_unsigned(value, field.total_size)
         ACCESSORS[field.total_size](addr, value)
@@ -90,6 +100,7 @@ def _write_accessor(field, base, offset, value):
         # TODO
         return NotImplemented
     elif isinstance(field, Pointer):
+        _check_value_overflow(value, field.total_size, False)
         ACCESSORS[field.total_size](addr, value)
     # give more indicative errors for struct / array
     elif isinstance(field, StructField):

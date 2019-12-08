@@ -8,7 +8,7 @@ endif
 
 all: $(PLUGIN)
 
-$(PLUGIN): struct_layout.c
+$(PLUGIN): gcc_plugin/struct_layout.c
 	g++ $(CFLAGS_DEBUG) -Wall -Werror -I`gcc -print-file-name=plugin`/include -fpic -shared -o $@ $<
 
 run: $(PLUGIN) tests/test_struct.c

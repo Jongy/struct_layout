@@ -2,7 +2,7 @@ import os.path
 import subprocess
 import tempfile
 
-from ..fields import (Scalar, Bitfield, Pointer, Void, Function, Array, StructField, Struct)
+from python.fields import (Scalar, Bitfield, Pointer, Void, Function, Array, StructField, Struct)
 
 
 STRUCT_LAYOUT_SO = os.path.abspath(
