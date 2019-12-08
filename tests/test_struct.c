@@ -62,5 +62,7 @@ struct test_struct {
 
     struct outer o;
 
+    __builtin_va_list va_list;
+
     int arr[0];
 };

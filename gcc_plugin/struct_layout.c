@@ -189,6 +189,14 @@ static const char *get_type_name(const_tree type)
     gcc_assert(is_struct_or_union(type) || ENUMERAL_TYPE == TREE_CODE(type));
     gcc_assert(TYPE_IDENTIFIER(type)); // must be named
 
+    // __va_list_tag is the final type beneath __builtin_va_list.
+    // it behaves different from other types - it has a TYPE_MAIN_VARIANT, but the main TYPE_NAME seems to give
+    // an unexpected tree, and therefore ORIG_TYPE_NAME returns a garbage value.
+    // I think this patch is good enough.
+    if (0 == strcmp("__va_list_tag", IDENTIFIER_POINTER(TYPE_IDENTIFIER(type)))) {
+        return "__va_list_tag";
+    }
+
     // TYPE_MAIN_VARIANT might be different if, afaik:
     // 1. type is a modified version of another type (with "const", "volatile", ...)
     // 2. type is a typedefed version of another type (possibly with modifiers)
