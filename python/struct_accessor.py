@@ -224,6 +224,9 @@ def partial_struct(struct):
 
 
 def sizeof(struct, field_name=None):
+    if isinstance(struct, str):
+        struct = STRUCTS[struct]
+
     if field_name:
         if isinstance(struct.fields[field_name][1], Bitfield):
             raise TypeError("Can't take the size of bit fields!")
@@ -236,7 +239,14 @@ def sizeof(struct, field_name=None):
 
 
 def offsetof(struct, field_name):
+    if isinstance(struct, str):
+        struct = STRUCTS[struct]
+
     if isinstance(struct.fields[field_name][1], Bitfield):
         raise TypeError("Can't take the offset of bit fields!")
 
     return struct.fields[field_name][0] // 8
+
+
+def container_of(ptr, struct, field_name):
+    return ptr - offsetof(struct, field_name)
