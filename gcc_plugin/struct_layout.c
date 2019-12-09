@@ -458,7 +458,7 @@ int plugin_init(struct plugin_name_args *plugin_info, struct plugin_gcc_version 
         exit(EXIT_FAILURE);
     }
 
-    fprintf(output_file, "structs = {\n");
+    fprintf(output_file, "from python.fields import *\nstructs = {\n");
 
     register_callback(plugin_info->base_name, PLUGIN_FINISH_TYPE, plugin_finish_type, NULL);
     register_callback(plugin_info->base_name, PLUGIN_FINISH, plugin_finish, NULL);
