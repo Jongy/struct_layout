@@ -169,11 +169,11 @@ class ArrayPtr(object):
 
 
 def _get_sp_struct(sp):
-    return super(StructPtr, sp).__getattribute__("____struct")
+    return sp.____struct
 
 
 def _get_sp_ptr(sp):
-    return super(StructPtr, sp).__getattribute__("____ptr")
+    return sp.____ptr
 
 
 def _get_struct_field(sp, attr):
@@ -191,8 +191,8 @@ class StructPtr(object):
     """
 
     def __init__(self, struct, ptr):
-        super(StructPtr, self).__setattr__("____struct", struct)
-        super(StructPtr, self).__setattr__("____ptr", ptr)
+        object.__setattr__(self, "____struct", struct)
+        object.__setattr__(self, "____ptr", ptr)
 
     def __getattr__(self, attr):
         f = _get_struct_field(self, attr)
