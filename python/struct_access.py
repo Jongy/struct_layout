@@ -11,7 +11,9 @@ ACCESSORS = {}
 STRUCTS = {}
 
 
-def set_accessors(p8, p16, p32, p64):
+# pycpy - memcpy from python objects
+def set_accessors(pycpy, p8, p16, p32, p64):
+    ACCESSORS[0] = pycpy
     ACCESSORS[8] = p8
     ACCESSORS[16] = p16
     ACCESSORS[32] = p32
@@ -108,10 +110,16 @@ def _write_accessor(field, base, offset, value):
         ACCESSORS[field.total_size](addr, value)
     # give more indicative errors for struct / array
     elif isinstance(field, StructField):
-        # could be done with a memcpy though.
         raise TypeError("Can't set a struct! Please set its fields instead")
     elif isinstance(field, Array):
-        raise TypeError("Can't set an array! Please set its elements instead")
+        if isinstance(value, (str, bytes)):
+            if isinstance(value, str):
+                value = value.encode("ascii")
+            if len(value) > field.total_size // 8:
+                raise ValueError("Buffer overflow!")
+            ACCESSORS[0](addr, value, len(value))
+        else:
+            raise TypeError("Can't set an array! Please set its elements instead")
     else:
         raise NotImplementedError("_write_accessor for {!r}".format(field))
 

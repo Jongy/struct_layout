@@ -12,6 +12,9 @@ MEM_BASE = 0x10000
 
 
 def make_accessors(data):
+    def pycpy(p, s, n):
+        data[p-MEM_BASE:p-MEM_BASE+n] = s
+
     def p8(p, v=None):
         if v is not None:
             print("u8 @ 0x{:x} = {:x}".format(p, v))
@@ -44,7 +47,7 @@ def make_accessors(data):
             print("u64 @ 0x{:x}".format(p))
             return struct.unpack_from(">Q", data, p - MEM_BASE)[0]
 
-    return p8, p16, p32, p64
+    return pycpy, p8, p16, p32, p64
 
 
 def set_memory_struct(fmt, *args):
@@ -168,13 +171,28 @@ def test_accessor_set_scalar():
 
 def test_accessor_set_array():
     mem = set_memory_struct(">BBBBB", 0, 0, 0, 0, 0)
-    print(mem)
     s = partial_struct(dump_struct_layout("struct x { char arr[5] };", "x")["x"])(MEM_BASE)
 
     for i in range(0, len(s.arr)):
         s.arr[i] = i + 1
 
     assert mem == b"\x01\x02\x03\x04\x05"
+
+
+def test_accessor_set_array_buffer():
+    mem = set_memory_struct(">BBBBB", 0, 0, 0, 0, 0)
+    s = partial_struct(dump_struct_layout("struct x { char arr[5] };", "x")["x"])(MEM_BASE)
+
+    assert mem == b"\x00" * 5
+
+    s.arr = "hello"
+    assert mem == b"hello"
+
+    s.arr = "bye"
+    assert mem == b"byelo"
+
+    with pytest.raises(ValueError):
+        s.arr = b"123456"
 
 
 def test_accessor_set_pointer():
