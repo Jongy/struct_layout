@@ -4,8 +4,8 @@ import pytest
 from .test_struct_layout import dump_struct_layout
 
 from python.fields import Scalar, Function, Void
-from python.struct_accessor import (partial_struct, set_accessors, update_structs, Ptr, StructPtr,
-                                    ArrayPtr, sizeof, offsetof)
+from python.struct_access import (partial_struct, set_accessors, update_structs, Ptr, StructPtr,
+                                  ArrayPtr, sizeof, offsetof)
 
 
 MEM_BASE = 0x10000
