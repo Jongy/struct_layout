@@ -147,6 +147,9 @@ class Ptr(object):
     def __repr__(self):
         return "Ptr({!r}, 0x{:x})".format(self._type, self._ptr)
 
+    def __int__(self):
+        return self._ptr
+
 
 class ArrayPtr(object):
     def __init__(self, base, num_elem, elem_type):
@@ -178,6 +181,9 @@ class ArrayPtr(object):
 
     def __repr__(self):
         return "ArrayPtr(0x{:x}, {!r}, {!r})".format(self._base, self._num_elem, self._elem_type)
+
+    def __int__(self):
+        return self._base
 
 
 def _get_sp_struct(sp):
@@ -224,6 +230,9 @@ class StructPtr(object):
 
         return (_get_sp_struct(self) == _get_sp_struct(other)
                 and _get_sp_ptr(self) == _get_sp_ptr(other))
+
+    def __int__(self):
+        return _get_sp_ptr(self)
 
     def __repr__(self):
         return "StructPtr(0x{:x}, {!r})".format(_get_sp_ptr(self), _get_sp_struct(self))
