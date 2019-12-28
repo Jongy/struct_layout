@@ -16,8 +16,13 @@ run: $(PLUGIN) tests/test_struct.c
 	@echo
 	@cat layout.txt
 
+all.py: linux/include_all.c all
+	KDIR=$(KDIR) python3 linux/dump_structs.py $@
+
+linux_all: all.py
+
 test: $(PLUGIN)
 	python3 -m pytest -v tests
 
 clean:
-	rm -f $(PLUGIN)
+	rm -f $(PLUGIN) all.py

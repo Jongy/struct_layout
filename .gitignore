@@ -10,3 +10,5 @@ struct_layout.so
 test_struct.o
 
 __pycache__
+
+all.py
