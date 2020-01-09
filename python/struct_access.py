@@ -60,10 +60,9 @@ def _read_accessor(field, base, offset):
         if field.signed:
             value = _as_signed(value, field.total_size)
         return value
-
     elif isinstance(field, Bitfield):
         # TODO
-        return NotImplemented
+        raise NotImplementedError("bitfield read")
     elif isinstance(field, Function):
         raise TypeError("Attempt to deref a function pointer!")
     elif isinstance(field, Void):
@@ -104,7 +103,7 @@ def _write_accessor(field, base, offset, value):
         ACCESSORS[field.total_size](addr, value)
     elif isinstance(field, Bitfield):
         # TODO
-        return NotImplemented
+        raise NotImplementedError("bitfield write")
     elif isinstance(field, Pointer):
         _check_value_overflow(value, field.total_size, False)
         ACCESSORS[field.total_size](addr, value)
