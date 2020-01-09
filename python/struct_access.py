@@ -270,3 +270,44 @@ def offsetof(struct, field_name):
 
 def container_of(ptr, struct, field_name):
     return ptr - offsetof(struct, field_name)
+
+
+def is_struct_type(sp, struct):
+    # compare with "is" since it really should be the same object (address-wise)
+    return sp.____struct is struct
+
+
+def dump_struct(sp, levels=1, indent=0):
+
+    def _print_indented(s):
+        print(' ' * indent + s)
+
+
+    def _print_field_simple(field, val):
+        _print_indented(field + ' = ' + str(val))
+
+    fields = sp.____struct.fields
+    ordered_fields = sorted(fields.keys(), key=lambda k: fields[k][0])
+
+    for field in ordered_fields:
+        try:
+            val = getattr(sp, field)
+        except Exception as e:
+            print(' ' * indent + field + ' : ' + repr(e))
+            continue
+
+        # is it a struct?
+        if (isinstance(val, StructPtr)
+            # and not pointing to same type (probably a list of some sort...)
+            and not is_struct_type(val, fields[field][1])
+            # and we should go deeper
+            and levels > 0
+            # and not NULL
+            and val.____ptr != 0):
+
+            _print_field_simple(field, val)
+            dump_struct(val, levels=levels - 1, indent=indent + 4)
+        elif isinstance(fields[field][1], Scalar):
+            _print_indented(fields[field][1].type + ' ' + field + ' = ' + str(val) + ' ' + hex(val))
+        else:
+            _print_field_simple(field, val)
