@@ -24,17 +24,18 @@ class Void(Type):
 
 
 class Bitfield(Type):
-    def __init__(self, total_size):
+    def __init__(self, total_size, signed):
         super(Bitfield, self).__init__(total_size)
+        self.signed = signed
 
     def __eq__(self, other):
         if not isinstance(other, Bitfield):
             return NotImplemented
 
-        return super(Bitfield, self).__eq__(other)
+        return self.signed == other.signed and super(Bitfield, self).__eq__(other)
 
     def __repr__(self):
-        return "Bitfield({!r})".format(self.total_size)
+        return "Bitfield({!r}, {})".format(self.total_size, self.signed)
 
 
 class Scalar(Type):

@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2019 Yonatan Goldschmidt
+ * Copyright (c) 2019, 2020 Yonatan Goldschmidt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -308,7 +308,9 @@ static void dump_fields(tree first_field, size_t base_offset, size_t indent_leve
                 fprintf(output_file, "Void()");
             } else if (DECL_BIT_FIELD(field)) {
                 // bitfields TREE_TYPE has no TYPE_IDENTIFIER.
-                fprintf(output_file, "Bitfield(%ld)", tree_to_uhwi(DECL_SIZE(field)));
+                fprintf(output_file, "Bitfield(%ld, %s)", tree_to_uhwi(DECL_SIZE(field)),
+                    TYPE_UNSIGNED(field_type) ? "False" : "True");
+                debug_tree_helper(field, "bitfield");
             } else if (TREE_CODE(field_type) == FUNCTION_TYPE) {
                 // function pointers
                 // TODO: print type & args

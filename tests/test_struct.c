@@ -57,6 +57,7 @@ struct test_struct {
     char bitfield2: 5;
     int between_bitfields;
     int bitfield3: 2;
+    unsigned int unsigned_bitfield3: 2;
 
     bool bb;
 

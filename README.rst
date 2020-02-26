@@ -57,7 +57,7 @@ attributes vary between field types:
 
 * ``Scalar`` - scalars, they also have their basic type, like ``int`` or ``char`` or ``unsigned long int`` and
   a boolean ``sign`` field (``True`` signed / ``False`` unsigned)
-* ``Bitfield`` - used for bitfields, these only have the number of bits they occupy.
+* ``Bitfield`` - used for bitfields, these have the number of bits they occupy and a ``sign`` field.
 * ``StructField`` - struct/union fields, these have the struct name they are referencing.
   If the field is based on an anonymous struct, then its ``Struct`` object itself is given.
 * ``Pointer`` - for all types of pointers, these have their "pointee" type, which may be e.g

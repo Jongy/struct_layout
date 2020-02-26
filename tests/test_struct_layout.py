@@ -144,14 +144,15 @@ def test_struct_dump_all():
 
 
 def test_struct_bitfields():
-    x = (dump_struct_layout("struct x { int bf1: 3; int:5; int bf2: 1; int n; int bf3: 29; };", "x")
+    x = (dump_struct_layout("struct x { int bf1: 3; int:5; int bf2: 1; int n; int bf3: 29; unsigned int bf4: 1; };", "x")
          ["x"].fields)
 
-    assert len(x.keys()) == 4
-    assert x["bf1"] == (0, Bitfield(3))
-    assert x["bf2"] == (8, Bitfield(1))
+    assert len(x.keys()) == 5
+    assert x["bf1"] == (0, Bitfield(3, True))
+    assert x["bf2"] == (8, Bitfield(1, True))
     assert x["n"] == (32, Scalar(32, "int", True))
-    assert x["bf3"] == (64, Bitfield(29))
+    assert x["bf3"] == (64, Bitfield(29, True))
+    assert x["bf4"] == (93, Bitfield(1, False))
 
 
 def test_struct_function_ptrs():
