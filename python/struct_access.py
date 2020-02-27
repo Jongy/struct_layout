@@ -305,7 +305,6 @@ def dump_struct(sp, levels=1, indent=0):
     def _print_indented(s):
         print(' ' * indent + s)
 
-
     def _print_field_simple(field, val):
         _print_indented(field + ' = ' + str(val))
 
@@ -326,7 +325,7 @@ def dump_struct(sp, levels=1, indent=0):
             # and we should go deeper
             and levels > 0
             # and not NULL
-            and val.____ptr != 0):
+           and val.____ptr != 0):
 
             _print_field_simple(field, val)
             dump_struct(val, levels=levels - 1, indent=indent + 4)
