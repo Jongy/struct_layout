@@ -36,7 +36,7 @@ def _as_unsigned(n, bits):
     return n
 
 
-def _make_addr(base, offset, bitfield=False):
+def _make_addr(base, offset):
     return base + offset // 8
 
 
@@ -61,8 +61,31 @@ def _read_accessor(field, base, offset):
             value = _as_signed(value, field.total_size)
         return value
     elif isinstance(field, Bitfield):
-        # TODO
-        raise NotImplementedError("bitfield read")
+        # attempt to use the smallest access size that's
+        # 1. aligned (to native size)
+        # 2. covers the bitfield size
+        if offset % 8 + field.total_size <= 8:
+            size = 8
+        elif offset % 16 + field.total_size <= 16:
+            size = 16
+        elif offset % 32 + field.total_size <= 32:
+            size = 32
+        elif offset % 64 + field.total_size <= 64:
+            size = 64
+        else:
+            raise NotImplementedError("cross-word bitfield! base {:#x} offset {} size {}".format(
+                                      base, offset, field.total_size))
+
+        addr = _access_addr(field, base, (offset // size) * size)
+        val = ACCESSORS[size](addr)
+
+        bitfield_offset = offset - (addr - base) * 8
+        shift = size - (bitfield_offset + field.total_size)
+        val = (val >> shift) & ((1 << field.total_size) - 1)
+        if field.signed:
+            val = _as_signed(val, field.total_size)
+        return val
+
     elif isinstance(field, Function):
         raise TypeError("Attempt to deref a function pointer!")
     elif isinstance(field, Void):

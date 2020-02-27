@@ -68,10 +68,48 @@ def test_accessor_scalar():
     assert s.sign == -4387
 
 
-@pytest.mark.skip("TODO")
 def test_accessor_bitfield():
-    # not implemented in accessors yet
-    pass
+    set_memory_struct(">LHHH", 0xa00b112f, 0x9876, 0x0000, 0x0000)
+
+    def swap32(n):
+        return struct.unpack("<L", struct.pack(">L", n))[0]
+
+    s = partial_struct(dump_struct_layout("""
+        struct x {
+            unsigned int bf1: 2;
+            unsigned int bf2: 14;
+            char z1;
+            int bf3: 4;
+            int bf4: 5;
+
+            int bf5: 3;
+            int bf6: 2;
+            int bf7: 7;
+
+            char z2;
+            // cross-word (since it's packed)
+            int bf8: 9;
+
+            char z3;
+            int z4: 7;
+            unsigned int bf9: 2;
+            char z5;
+        } __attribute__((packed));
+        """, "x")["x"])(MEM_BASE)
+
+    assert s.bf1 == 0x2
+    assert s.bf2 == 0x200b
+    assert s.bf3 == 0x2
+    # read with p64 since it spans across two 32-bit words
+    assert s.bf4 == -1  # signed 0b11111
+
+    assert s.bf5 == 1
+    assert s.bf6 == -2  # signed 0b10
+    assert s.bf7 == 0b0001110
+
+    with pytest.raises(NotImplementedError):
+        # cross-word is not implemented (requires 2 accesses, what a hassle)
+        s.bf8
 
 
 def test_accessor_array_scalar():
