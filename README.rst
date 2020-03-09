@@ -103,6 +103,19 @@ To dump all structs (based on a set of headers I've collected in ``include_all.c
 
     $ python linux/dump_structs.py all.txt
 
+Structs missing in output
+-------------------------
+
+When including headers to dump their defined types, you may see some structs missing from the
+output (although they are fully defined in the headers).
+Apparently GCC doesn't complete the processing of structs that have only a typedef name until
+they are used at least once (structs of the format ``typedef struct { ... } ..;``).
+I didn't verify it in GCC's code though.
+Thus, the emitted event for finished types is not generated for them, and the plugin doesn't know of them.
+
+A quick workaround for this problem: define a dummy, *named* struct referencing the types you want
+in the dummy ``.c`` file you're handing to GCC.
+
 Using the accessors
 ===================
 
