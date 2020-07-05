@@ -172,6 +172,12 @@ class Ptr(object):
     def __int__(self):
         return self._ptr
 
+    def __add__(self, other):
+        if not isinstance(other, int):
+            return NotImplemented
+
+        return self._ptr + other
+
 
 class ArrayPtr(object):
     def __init__(self, base, num_elem, elem_type):
