@@ -31,6 +31,8 @@
 #include <gcc-plugin.h>
 #include <tree.h>
 #include <print-tree.h>
+#include <c-family/c-common.h>
+#include <plugin-version.h>
 
 
 int plugin_is_GPL_compatible; // must be defined for the plugin to run
@@ -436,6 +438,11 @@ static void plugin_finish(void *event_data, void *user_data)
 
 int plugin_init(struct plugin_name_args *plugin_info, struct plugin_gcc_version *version)
 {
+    if (!plugin_default_version_check(version, &gcc_version)) {
+        error("incompatible gcc/plugin versions");
+        return 1;
+    }
+
     const char *output = NULL;
 
     for (int i = 0; i < plugin_info->argc; ++i) {
