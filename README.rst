@@ -131,7 +131,7 @@ You can see how ``test_accessor.py`` does it.
 Tests
 =====
 
-This was tested on GCC 7.4.0 and GCC 9.2.0. Oh, and Python 3, of course.
+This was tested on GCC 7.4.0, GCC 9.2.0, GCC 10.2.0. Oh, and Python 3, of course.
 
 .. code-block:: bash
 

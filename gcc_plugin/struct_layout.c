@@ -431,7 +431,7 @@ static void plugin_finish(void *event_data, void *user_data)
         iter = iter->next;
     }
 
-    fprintf(output_file, "}\n");
+    fprintf(output_file, "})\n");
 
     fflush(output_file);
 }
@@ -461,13 +461,15 @@ int plugin_init(struct plugin_name_args *plugin_info, struct plugin_gcc_version 
         exit(EXIT_FAILURE);
     }
 
-    output_file = fopen(output, "w");
+    output_file = fopen(output, "a");
     if (NULL == output_file) {
         perror(output);
         exit(EXIT_FAILURE);
     }
 
-    fprintf(output_file, "try:\n    from python.fields import *\nexcept ImportError:\n    from fields import *\nstructs = {\n");
+    fprintf(output_file, ftell(output_file) == 0 ?
+        "try:\n    from python.fields import *\nexcept ImportError:\n    from fields import *\nstructs = ({\n" :
+        "structs.update({\n");
 
     register_callback(plugin_info->base_name, PLUGIN_FINISH_TYPE, plugin_finish_type, NULL);
     register_callback(plugin_info->base_name, PLUGIN_FINISH, plugin_finish, NULL);
