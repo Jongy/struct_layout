@@ -1,8 +1,8 @@
 # MP imports this file w/o the package. make it work for both.
 try:
-    from python.fields import Scalar, Bitfield, Function, Void, Pointer, StructField, Array
+    from python.fields import Scalar, Bitfield, Function, Void, Pointer, StructField, Array, Struct
 except ImportError:
-    from fields import Scalar, Bitfield, Function, Void, Pointer, StructField, Array
+    from fields import Scalar, Bitfield, Function, Void, Pointer, StructField, Array, Struct
 
 # I know it's weird to have such globals, but wrapping them in an object will make
 # all the other classes cumbersome with the need to pass it around.
@@ -43,7 +43,7 @@ def _make_addr(base, offset):
 def _lookup_struct(s):
     if isinstance(s, str):
         return STRUCTS[s]
-    assert isinstance(s, StructPtr)
+    assert isinstance(s, Struct)
     return s
 
 
