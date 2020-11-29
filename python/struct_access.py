@@ -43,6 +43,7 @@ def _make_addr(base, offset):
 def _lookup_struct(s):
     if isinstance(s, str):
         return STRUCTS[s]
+    assert isinstance(s, StructPtr)
     return s
 
 
@@ -180,6 +181,8 @@ class Ptr(object):
 
 
 class ArrayPtr(object):
+    CHAR_TYPE = Scalar(8, "char", True)
+
     def __init__(self, base, num_elem, elem_type):
         self.___ptr = base
         self._num_elem = num_elem or None
@@ -187,7 +190,7 @@ class ArrayPtr(object):
 
     def __check_index(self, key):
         if self._num_elem and not (0 <= key < self._num_elem):
-            raise ValueError("Index {!r} not in range: 0 - {!r}".format(key, self._num_elem - 1))
+            raise IndexError("Index {!r} not in range: 0 - {!r}".format(key, self._num_elem - 1))
 
     def __getitem__(self, key):
         self.__check_index(key)
@@ -212,6 +215,21 @@ class ArrayPtr(object):
 
     def __int__(self):
         return self.___ptr
+
+    def read(self, n=None):
+        n = n if n is not None else self._num_elem
+        items = []
+        for i in range(n):
+            items.append(self[i])
+
+        if self._elem_type == ArrayPtr.CHAR_TYPE:
+            # special case: if type is "char", convert to string
+            s = "".join(map(chr, items))
+            if s.find('\x00') != -1:
+                s = s[:s.find('\x00')]
+            return s
+        else:
+            return items
 
 
 def _get_sp_struct(sp):
@@ -266,15 +284,28 @@ class StructPtr(object):
         return "StructPtr(0x{:x}, {!r})".format(_get_sp_ptr(self), _get_sp_struct(self))
 
 
+def to_int(p):
+    if isinstance(p, int):
+        return p
+
+    n = getattr(p, "____ptr", None)
+    if n is not None:
+        return n
+
+    raise ValueError("Can't handle object of type {}".format(type(p)))
+
+
 def partial_struct(struct):
+    struct = _lookup_struct(struct)
+
     def p(ptr):
-        return StructPtr(_lookup_struct(struct), ptr)
+        return StructPtr(struct, ptr)
+
     return p
 
 
 def sizeof(struct, field_name=None):
-    if isinstance(struct, str):
-        struct = STRUCTS[struct]
+    struct = _lookup_struct(struct)
 
     if field_name:
         if isinstance(struct.fields[field_name][1], Bitfield):
@@ -288,8 +319,7 @@ def sizeof(struct, field_name=None):
 
 
 def offsetof(struct, field_name):
-    if isinstance(struct, str):
-        struct = STRUCTS[struct]
+    struct = _lookup_struct(struct)
 
     if isinstance(struct.fields[field_name][1], Bitfield):
         raise TypeError("Can't take the offset of bit fields!")
@@ -298,12 +328,12 @@ def offsetof(struct, field_name):
 
 
 def container_of(ptr, struct, field_name):
-    return ptr - offsetof(struct, field_name)
+    struct = _lookup_struct(struct)
+    return StructPtr(struct, to_int(ptr) - offsetof(struct, field_name))
 
 
 def is_struct_type(sp, struct):
-    # compare with "is" since it really should be the same object (address-wise)
-    return sp.____struct is struct
+    return sp.____struct == struct
 
 
 def dump_struct(sp, levels=1, indent=0):

@@ -45,7 +45,6 @@ class Scalar(Type):
         self.signed = signed
 
     def __eq__(self, other):
-        print(self, other)
         if not isinstance(other, Scalar):
             return NotImplemented
 
@@ -133,4 +132,4 @@ class Struct(Type):
 
     def __repr__(self):
         # fields are too much, don't print them
-        return "Struct({!r}, {!r}, ...)".format(self.total_size, self.name, self.fields)
+        return "Struct({!r}, {!r}, ...)".format(self.total_size, self.name)
