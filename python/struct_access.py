@@ -47,7 +47,7 @@ def _make_addr(base, offset):
     return base + offset // 8
 
 
-def _lookup_struct(s):
+def lookup_struct(s):
     if isinstance(s, str):
         return STRUCTS[s]
     assert isinstance(s, Struct)
@@ -102,13 +102,13 @@ def _read_accessor(field, base, offset):
         ptr = ACCESSORS[field.total_size](addr)
         pt = field.pointed_type
         if isinstance(pt, StructField):
-            return StructPtr(_lookup_struct(pt.type), ptr)
+            return StructPtr(lookup_struct(pt.type), ptr)
         elif isinstance(pt, Array):
             return ArrayPtr(ptr, pt.num_elem, pt.elem_type)
         else:
             return Ptr(pt, ptr)
     elif isinstance(field, StructField):
-        return StructPtr(_lookup_struct(field.type), addr)
+        return StructPtr(lookup_struct(field.type), addr)
     elif isinstance(field, Array):
         return ArrayPtr(addr, field.num_elem, field.elem_type)
     else:
@@ -303,7 +303,7 @@ def to_int(p):
 
 
 def partial_struct(struct):
-    struct = _lookup_struct(struct)
+    struct = lookup_struct(struct)
 
     def p(ptr):
         return StructPtr(struct, ptr)
@@ -312,7 +312,7 @@ def partial_struct(struct):
 
 
 def sizeof(struct, field_name=None):
-    struct = _lookup_struct(struct)
+    struct = lookup_struct(struct)
 
     if field_name:
         if isinstance(struct.fields[field_name][1], Bitfield):
@@ -326,7 +326,7 @@ def sizeof(struct, field_name=None):
 
 
 def offsetof(struct, field_name):
-    struct = _lookup_struct(struct)
+    struct = lookup_struct(struct)
 
     if isinstance(struct.fields[field_name][1], Bitfield):
         raise TypeError("Can't take the offset of bit fields!")
@@ -335,7 +335,7 @@ def offsetof(struct, field_name):
 
 
 def container_of(ptr, struct, field_name):
-    struct = _lookup_struct(struct)
+    struct = lookup_struct(struct)
     return StructPtr(struct, to_int(ptr) - offsetof(struct, field_name))
 
 
