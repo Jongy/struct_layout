@@ -11,6 +11,13 @@ ACCESSORS = {}
 STRUCTS = {}
 
 
+def cast_struct(struct, ptr):
+    return StructPtr(struct, ptr)
+
+
+Struct.__call__ = cast_struct
+
+
 # pycpy - memcpy from python objects
 def set_accessors(pycpy, p8, p16, p32, p64):
     ACCESSORS[0] = pycpy
