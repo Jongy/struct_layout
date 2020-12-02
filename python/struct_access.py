@@ -161,34 +161,34 @@ def _write_accessor(field, base, offset, value):
 class Ptr(object):
     def __init__(self, type_, ptr):
         self._type = type_
-        self.___ptr = ptr
+        self.____ptr = ptr
 
     def p(self):
-        return _read_accessor(self._type, self.___ptr, 0)
+        return _read_accessor(self._type, self.____ptr, 0)
 
     def __getitem__(self, key):
-        return _read_accessor(self._type, self.___ptr, key * self._type.total_size)
+        return _read_accessor(self._type, self.____ptr, key * self._type.total_size)
 
     def __setitem__(self, key, value):
-        return _write_accessor(self._type, self.___ptr, key * self._type.total_size, value)
+        return _write_accessor(self._type, self.____ptr, key * self._type.total_size, value)
 
     def __eq__(self, other):
         if not isinstance(other, Ptr):
             return NotImplemented
 
-        return self._type == other._type and self.___ptr == other.___ptr
+        return self._type == other._type and self.____ptr == other.____ptr
 
     def __repr__(self):
-        return "Ptr({!r}, 0x{:x})".format(self._type, self.___ptr)
+        return "Ptr({!r}, 0x{:x})".format(self._type, self.____ptr)
 
     def __int__(self):
-        return self.___ptr
+        return self.____ptr
 
     def __add__(self, other):
         if not isinstance(other, int):
             return NotImplemented
 
-        return self.___ptr + other
+        return self.____ptr + other
 
     def __call__(self, *args):
         if not isinstance(self._type, Function):
@@ -196,14 +196,14 @@ class Ptr(object):
 
         c = CALL
         assert c is not None
-        return c(self.___ptr, args)
+        return c(self.____ptr, args)
 
 
 class ArrayPtr(object):
     CHAR_TYPE = Scalar(8, "char", True)
 
     def __init__(self, base, num_elem, elem_type):
-        self.___ptr = base
+        self.____ptr = base
         self._num_elem = num_elem or None
         self._elem_type = elem_type
 
@@ -213,27 +213,27 @@ class ArrayPtr(object):
 
     def __getitem__(self, key):
         self.__check_index(key)
-        return _read_accessor(self._elem_type, self.___ptr, key * self._elem_type.total_size)
+        return _read_accessor(self._elem_type, self.____ptr, key * self._elem_type.total_size)
 
     def __setitem__(self, key, value):
         self.__check_index(key)
-        return _write_accessor(self._elem_type, self.___ptr, key * self._elem_type.total_size, value)
+        return _write_accessor(self._elem_type, self.____ptr, key * self._elem_type.total_size, value)
 
     def __eq__(self, other):
         if not isinstance(other, ArrayPtr):
             return NotImplemented
 
-        return (self.___ptr == other.___ptr and self._num_elem == other._num_elem and
+        return (self.____ptr == other.____ptr and self._num_elem == other._num_elem and
                 self._elem_type == other._elem_type)
 
     def __len__(self):
         return self._num_elem
 
     def __repr__(self):
-        return "ArrayPtr(0x{:x}, {!r}, {!r})".format(self.___ptr, self._num_elem, self._elem_type)
+        return "ArrayPtr(0x{:x}, {!r}, {!r})".format(self.____ptr, self._num_elem, self._elem_type)
 
     def __int__(self):
-        return self.___ptr
+        return self.____ptr
 
     def read(self, n=None):
         n = n if n is not None else self._num_elem
