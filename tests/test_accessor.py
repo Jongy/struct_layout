@@ -47,7 +47,10 @@ def make_accessors(data):
             print("u64 @ 0x{:x}".format(p))
             return struct.unpack_from(">Q", data, p - MEM_BASE)[0]
 
-    return pycpy, p8, p16, p32, p64
+    def call(ptr, args):
+        raise NotImplementedError()
+
+    return pycpy, p8, p16, p32, p64, call
 
 
 def set_memory_struct(fmt, *args):

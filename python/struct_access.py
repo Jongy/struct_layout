@@ -8,6 +8,7 @@ except ImportError:
 # all the other classes cumbersome with the need to pass it around.
 # anyway there's no reason we'll ever need more instances of these.
 ACCESSORS = {}
+CALL = None
 STRUCTS = {}
 
 
@@ -19,12 +20,15 @@ Struct.__call__ = cast_struct
 
 
 # pycpy - memcpy from python objects
-def set_accessors(pycpy, p8, p16, p32, p64):
+def set_accessors(pycpy, p8, p16, p32, p64, call):
     ACCESSORS[0] = pycpy
     ACCESSORS[8] = p8
     ACCESSORS[16] = p16
     ACCESSORS[32] = p32
     ACCESSORS[64] = p64
+
+    global CALL
+    CALL = call
 
 
 def update_structs(structs):
@@ -185,6 +189,14 @@ class Ptr(object):
             return NotImplemented
 
         return self.___ptr + other
+
+    def __call__(self, *args):
+        if not isinstance(self._type, Function):
+            raise TypeError("Calling a non-function pointer?")
+
+        c = CALL
+        assert c is not None
+        return c(self.___ptr, args)
 
 
 class ArrayPtr(object):
