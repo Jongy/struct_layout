@@ -1,8 +1,8 @@
 # MP imports this file w/o the package. make it work for both.
 try:
-    from python.fields import Scalar, Bitfield, Function, Void, Pointer, StructField, Array, Struct
+    from python.fields import Scalar, Bitfield, Function, Void, Pointer, StructField, Array, Struct, UnknownStructType
 except ImportError:
-    from fields import Scalar, Bitfield, Function, Void, Pointer, StructField, Array, Struct
+    from fields import Scalar, Bitfield, Function, Void, Pointer, StructField, Array, Struct, UnknownStructType
 
 # I know it's weird to have such globals, but wrapping them in an object will make
 # all the other classes cumbersome with the need to pass it around.
@@ -64,6 +64,14 @@ def _access_addr(field, base, offset):
     return _make_addr(base, offset)
 
 
+def _make_struct(struct, ptr):
+    try:
+        s = lookup_struct(struct)
+    except KeyError:
+        return Ptr(UnknownStructType(struct), ptr)
+    return StructPtr(s, ptr)
+
+
 def _read_accessor(field, base, offset):
     addr = _access_addr(field, base, offset)
 
@@ -106,13 +114,13 @@ def _read_accessor(field, base, offset):
         ptr = ACCESSORS[field.total_size](addr)
         pt = field.pointed_type
         if isinstance(pt, StructField):
-            return StructPtr(lookup_struct(pt.type), ptr)
+            return _make_struct(pt.type, ptr)
         elif isinstance(pt, Array):
             return ArrayPtr(ptr, pt.num_elem, pt.elem_type)
         else:
             return Ptr(pt, ptr)
     elif isinstance(field, StructField):
-        return StructPtr(lookup_struct(field.type), addr)
+        return _make_struct(field.type, addr)
     elif isinstance(field, Array):
         return ArrayPtr(addr, field.num_elem, field.elem_type)
     else:

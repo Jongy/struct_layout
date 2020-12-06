@@ -23,6 +23,21 @@ class Void(Type):
         return "Void()"
 
 
+class UnknownStructType(Void):
+    def __init__(self, struct_name):
+        super().__init__()
+        self.struct_name = struct_name
+
+    def __eq__(self, other):
+        if not isinstance(other, UnknownStructType):
+            return NotImplemented
+
+        return super(UnknownStructType, self).__eq__(other)
+
+    def __repr__(self):
+        return "UnknownStruct({!r})".format(self.struct_name)
+
+
 class Bitfield(Type):
     def __init__(self, total_size, signed):
         super(Bitfield, self).__init__(total_size)
