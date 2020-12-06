@@ -132,6 +132,7 @@ def _write_accessor(field, base, offset, value):
     addr = _access_addr(field, base, offset)
 
     if isinstance(field, Scalar):
+        value = to_int(value)
         _check_value_overflow(value, field.total_size, field.signed)
         if field.signed:
             value = _as_unsigned(value, field.total_size)
@@ -140,6 +141,7 @@ def _write_accessor(field, base, offset, value):
         # TODO
         raise NotImplementedError("bitfield write")
     elif isinstance(field, Pointer):
+        value = to_int(value)
         _check_value_overflow(value, field.total_size, False)
         ACCESSORS[field.total_size](addr, value)
     # give more indicative errors for struct / array
