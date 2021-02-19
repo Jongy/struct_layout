@@ -195,8 +195,13 @@ static const char *get_type_name(const_tree type)
     // it behaves different from other types - it has a TYPE_MAIN_VARIANT, but the main TYPE_NAME seems to give
     // an unexpected tree, and therefore ORIG_TYPE_NAME returns a garbage value.
     // I think this patch is good enough.
-    if (0 == strcmp("__va_list_tag", IDENTIFIER_POINTER(TYPE_IDENTIFIER(type)))) {
-        return "__va_list_tag";
+    // when compiling on ARM (testing against Linux headers) this happened with the plain 'va_list', so
+    // I'm tackling it as well.
+    // I tried to find another mean to identify those "problematic" types, but couldn't do so quickly, hence
+    // the patch.
+    const char *type_id = IDENTIFIER_POINTER(TYPE_IDENTIFIER(type));
+    if (0 == strcmp("__va_list_tag", type_id) || 0 == strcmp("va_list", type_id)) {
+        return type_id;
     }
 
     // TYPE_MAIN_VARIANT might be different if, afaik:
