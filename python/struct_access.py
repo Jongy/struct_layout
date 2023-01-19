@@ -59,7 +59,7 @@ def lookup_struct(s):
 
 
 def _access_addr(field, base, offset):
-    if 0 == base:
+    if base == 0:
         raise ValueError("NULL deref! offset {!r} type {!r}".format(offset, field))
     return _make_addr(base, offset)
 
@@ -131,9 +131,8 @@ def _check_value_overflow(value, bits, signed):
     if signed:
         if not -(1 << bits) <= value < (1 << (bits - 1)):
             raise ValueError("{!r} doesn't fit in signed {}-bits!".format(value, bits))
-    else:
-        if not (0 <= value < (1 << bits)):
-            raise ValueError("{!r} doesn't fit in unsigned {}-bits!".format(value, bits))
+    elif not (0 <= value < (1 << bits)):
+        raise ValueError("{!r} doesn't fit in unsigned {}-bits!".format(value, bits))
 
 
 def _write_accessor(field, base, offset, value):
@@ -152,18 +151,16 @@ def _write_accessor(field, base, offset, value):
         value = to_int(value)
         _check_value_overflow(value, field.total_size, False)
         ACCESSORS[field.total_size](addr, value)
-    # give more indicative errors for struct / array
     elif isinstance(field, StructField):
         raise TypeError("Can't set a struct! Please set its fields instead")
     elif isinstance(field, Array):
-        if isinstance(value, (str, bytes)):
-            if isinstance(value, str):
-                value = value.encode("ascii")
-            if len(value) > field.total_size // 8:
-                raise ValueError("Buffer overflow!")
-            ACCESSORS[0](addr, value, len(value))
-        else:
+        if not isinstance(value, (str, bytes)):
             raise TypeError("Can't set an array! Please set its elements instead")
+        if isinstance(value, str):
+            value = value.encode("ascii")
+        if len(value) > field.total_size // 8:
+            raise ValueError("Buffer overflow!")
+        ACCESSORS[0](addr, value, len(value))
     else:
         raise NotImplementedError("_write_accessor for {!r}".format(field))
 
@@ -183,10 +180,11 @@ class Ptr(object):
         return _write_accessor(self._type, self.____ptr, key * self._type.total_size, value)
 
     def __eq__(self, other):
-        if not isinstance(other, Ptr):
-            return NotImplemented
-
-        return self._type == other._type and self.____ptr == other.____ptr
+        return (
+            self._type == other._type and self.____ptr == other.____ptr
+            if isinstance(other, Ptr)
+            else NotImplemented
+        )
 
     def __repr__(self):
         return "Ptr({!r}, 0x{:x})".format(self._type, self.____ptr)
@@ -195,10 +193,7 @@ class Ptr(object):
         return self.____ptr
 
     def __add__(self, other):
-        if not isinstance(other, int):
-            return NotImplemented
-
-        return self.____ptr + other
+        return self.____ptr + other if isinstance(other, int) else NotImplemented
 
     def __call__(self, *args):
         if not isinstance(self._type, Function):
@@ -230,11 +225,15 @@ class ArrayPtr(object):
         return _write_accessor(self._elem_type, self.____ptr, key * self._elem_type.total_size, value)
 
     def __eq__(self, other):
-        if not isinstance(other, ArrayPtr):
-            return NotImplemented
-
-        return (self.____ptr == other.____ptr and self._num_elem == other._num_elem and
-                self._elem_type == other._elem_type)
+        return (
+            (
+                self.____ptr == other.____ptr
+                and self._num_elem == other._num_elem
+                and self._elem_type == other._elem_type
+            )
+            if isinstance(other, ArrayPtr)
+            else NotImplemented
+        )
 
     def __len__(self):
         return self._num_elem
@@ -247,18 +246,14 @@ class ArrayPtr(object):
 
     def read(self, n=None):
         n = n if n is not None else self._num_elem
-        items = []
-        for i in range(n):
-            items.append(self[i])
-
-        if self._elem_type == ArrayPtr.CHAR_TYPE:
-            # special case: if type is "char", convert to string
-            s = "".join(map(chr, items))
-            if s.find('\x00') != -1:
-                s = s[:s.find('\x00')]
-            return s
-        else:
+        items = [self[i] for i in range(n)]
+        if self._elem_type != ArrayPtr.CHAR_TYPE:
             return items
+        # special case: if type is "char", convert to string
+        s = "".join(map(chr, items))
+        if '\x00' in s:
+            s = s[:s.find('\x00')]
+        return s
 
 
 def _get_sp_struct(sp):
@@ -300,11 +295,14 @@ class StructPtr(object):
         return list(_get_sp_struct(self).fields.keys())
 
     def __eq__(self, other):
-        if not isinstance(other, StructPtr):
-            return NotImplemented
-
-        return (_get_sp_struct(self) == _get_sp_struct(other)
-                and _get_sp_ptr(self) == _get_sp_ptr(other))
+        return (
+            (
+                _get_sp_struct(self) == _get_sp_struct(other)
+                and _get_sp_ptr(self) == _get_sp_ptr(other)
+            )
+            if isinstance(other, StructPtr)
+            else NotImplemented
+        )
 
     def __int__(self):
         return _get_sp_ptr(self)
@@ -321,7 +319,7 @@ def to_int(p):
     if n is not None:
         return n
 
-    raise ValueError("Can't handle object of type {}".format(type(p)))
+    raise ValueError(f"Can't handle object of type {type(p)}")
 
 
 def partial_struct(struct):
@@ -371,7 +369,7 @@ def dump_struct(sp, levels=1, indent=0):
         print(' ' * indent + s)
 
     def _print_field_simple(field, val):
-        _print_indented(field + ' = ' + str(val))
+        _print_indented(f'{field} = {str(val)}')
 
     fields = sp.____struct.fields
     ordered_fields = sorted(fields.keys(), key=lambda k: fields[k][0])
@@ -395,6 +393,6 @@ def dump_struct(sp, levels=1, indent=0):
             _print_field_simple(field, val)
             dump_struct(val, levels=levels - 1, indent=indent + 4)
         elif isinstance(fields[field][1], Scalar):
-            _print_indented(fields[field][1].type + ' ' + field + ' = ' + str(val) + ' ' + hex(val))
+            _print_indented(f'{fields[field][1].type} {field} = {str(val)} {hex(val)}')
         else:
             _print_field_simple(field, val)

@@ -3,10 +3,11 @@ class Type(object):
         self.total_size = total_size
 
     def __eq__(self, other):
-        if not isinstance(other, Type):
-            return NotImplemented
-
-        return self.total_size == other.total_size
+        return (
+            self.total_size == other.total_size
+            if isinstance(other, Type)
+            else NotImplemented
+        )
 
 
 class Void(Type):
@@ -14,10 +15,11 @@ class Void(Type):
         super(Void, self).__init__(0)
 
     def __eq__(self, other):
-        if not isinstance(other, Void):
-            return NotImplemented
-
-        return super(Void, self).__eq__(other)
+        return (
+            super(Void, self).__eq__(other)
+            if isinstance(other, Void)
+            else NotImplemented
+        )
 
     def __repr__(self):
         return "Void()"
@@ -29,10 +31,11 @@ class UnknownStructType(Void):
         self.struct_name = struct_name
 
     def __eq__(self, other):
-        if not isinstance(other, UnknownStructType):
-            return NotImplemented
-
-        return super(UnknownStructType, self).__eq__(other)
+        return (
+            super(UnknownStructType, self).__eq__(other)
+            if isinstance(other, UnknownStructType)
+            else NotImplemented
+        )
 
     def __repr__(self):
         return "UnknownStruct({!r})".format(self.struct_name)
@@ -44,10 +47,11 @@ class Bitfield(Type):
         self.signed = signed
 
     def __eq__(self, other):
-        if not isinstance(other, Bitfield):
-            return NotImplemented
-
-        return self.signed == other.signed and super(Bitfield, self).__eq__(other)
+        return (
+            self.signed == other.signed and super(Bitfield, self).__eq__(other)
+            if isinstance(other, Bitfield)
+            else NotImplemented
+        )
 
     def __repr__(self):
         return "Bitfield({!r}, {})".format(self.total_size, self.signed)
@@ -60,11 +64,15 @@ class Scalar(Type):
         self.signed = signed
 
     def __eq__(self, other):
-        if not isinstance(other, Scalar):
-            return NotImplemented
-
-        return (self.type == other.type and self.signed == other.signed
-                and super(Scalar, self).__eq__(other))
+        return (
+            (
+                self.type == other.type
+                and self.signed == other.signed
+                and super(Scalar, self).__eq__(other)
+            )
+            if isinstance(other, Scalar)
+            else NotImplemented
+        )
 
     def __repr__(self):
         return "Scalar({!r}, {!r}, {!r})".format(self.total_size, self.type, self.signed)
@@ -76,10 +84,11 @@ class StructField(Type):
         self.type = type_
 
     def __eq__(self, other):
-        if not isinstance(other, StructField):
-            return NotImplemented
-
-        return self.type == other.type and super(StructField, self).__eq__(other)
+        return (
+            self.type == other.type and super(StructField, self).__eq__(other)
+            if isinstance(other, StructField)
+            else NotImplemented
+        )
 
     def __repr__(self):
         return "StructField({!r}, {!r})".format(self.total_size, self.type)
@@ -91,10 +100,11 @@ class Function(Type):
         self.type = type_
 
     def __eq__(self, other):
-        if not isinstance(other, Function):
-            return NotImplemented
-
-        return self.type == other.type and super(Function, self).__eq__(other)
+        return (
+            self.type == other.type and super(Function, self).__eq__(other)
+            if isinstance(other, Function)
+            else NotImplemented
+        )
 
     def __repr__(self):
         return "Function({!r})".format(self.type)
@@ -106,10 +116,12 @@ class Pointer(Type):
         self.pointed_type = pointed_type
 
     def __eq__(self, other):
-        if not isinstance(other, Pointer):
-            return NotImplemented
-
-        return self.pointed_type == other.pointed_type and super(Pointer, self).__eq__(other)
+        return (
+            self.pointed_type == other.pointed_type
+            and super(Pointer, self).__eq__(other)
+            if isinstance(other, Pointer)
+            else NotImplemented
+        )
 
     def __repr__(self):
         return "Pointer({!r}, {!r})".format(self.total_size, self.pointed_type)
@@ -122,11 +134,15 @@ class Array(Type):
         self.elem_type = elem_type
 
     def __eq__(self, other):
-        if not isinstance(other, Array):
-            return NotImplemented
-
-        return (self.num_elem == other.num_elem and self.elem_type == other.elem_type
-                and super(Array, self).__eq__(other))
+        return (
+            (
+                self.num_elem == other.num_elem
+                and self.elem_type == other.elem_type
+                and super(Array, self).__eq__(other)
+            )
+            if isinstance(other, Array)
+            else NotImplemented
+        )
 
     def __repr__(self):
         return "Array({!r}, {!r}, {!r})".format(self.total_size, self.num_elem, self.elem_type)

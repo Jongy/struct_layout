@@ -10,10 +10,13 @@ STRUCT_LAYOUT_SO = os.path.abspath(
 
 
 def run_gcc(code_path, output_path, struct_name):
-    args = ["gcc", "-fplugin={}".format(STRUCT_LAYOUT_SO),
-            "-fplugin-arg-struct_layout-output={}".format(output_path)]
+    args = [
+        "gcc",
+        f"-fplugin={STRUCT_LAYOUT_SO}",
+        f"-fplugin-arg-struct_layout-output={output_path}",
+    ]
     if struct_name:
-        args.append("-fplugin-arg-struct_layout-struct={}".format(struct_name))
+        args.append(f"-fplugin-arg-struct_layout-struct={struct_name}")
     args += ["-c", "-o", "/dev/null", "-x", "c", code_path]
 
     subprocess.check_call(args)
