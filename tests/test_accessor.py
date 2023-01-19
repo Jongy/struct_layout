@@ -132,7 +132,7 @@ def test_accessor_array_struct():
     s = partial_struct(dump_struct_layout(
         "struct x { long n; struct { int n; short s; char c; } a[3]; };", "x")["x"])(MEM_BASE)
 
-    for i in range(0, 3):
+    for i in range(3):
         assert s.a[i].n == 3 * 10 ** i
         assert s.a[i].s == 2 * 10 ** i
         assert s.a[i].c == 1 * 10 ** i
@@ -214,7 +214,7 @@ def test_accessor_set_array():
     mem = set_memory_struct(">BBBBB", 0, 0, 0, 0, 0)
     s = partial_struct(dump_struct_layout("struct x { char arr[5] };", "x")["x"])(MEM_BASE)
 
-    for i in range(0, len(s.arr)):
+    for i in range(len(s.arr)):
         s.arr[i] = i + 1
 
     assert mem == b"\x01\x02\x03\x04\x05"
