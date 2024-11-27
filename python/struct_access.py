@@ -1,8 +1,28 @@
 # MP imports this file w/o the package. make it work for both.
 try:
-    from python.fields import Scalar, Bitfield, Function, Void, Pointer, StructField, Array, Struct, UnknownStructType
+    from python.fields import (
+        Scalar,
+        Bitfield,
+        Function,
+        Void,
+        Pointer,
+        StructField,
+        Array,
+        Struct,
+        UnknownStructType,
+    )
 except ImportError:
-    from fields import Scalar, Bitfield, Function, Void, Pointer, StructField, Array, Struct, UnknownStructType
+    from fields import (
+        Scalar,
+        Bitfield,
+        Function,
+        Void,
+        Pointer,
+        StructField,
+        Array,
+        Struct,
+        UnknownStructType,
+    )
 
 # I know it's weird to have such globals, but wrapping them in an object will make
 # all the other classes cumbersome with the need to pass it around.
@@ -37,13 +57,13 @@ def update_structs(structs):
 
 def _as_signed(n, bits):
     if n > (1 << (bits - 1)) - 1:
-        n -= (1 << bits)
+        n -= 1 << bits
     return n
 
 
 def _as_unsigned(n, bits):
     if n < 0:
-        n += (1 << bits)
+        n += 1 << bits
     return n
 
 
@@ -93,8 +113,11 @@ def _read_accessor(field, base, offset):
         elif offset % 64 + field.total_size <= 64:
             size = 64
         else:
-            raise NotImplementedError("cross-word bitfield! base {:#x} offset {} size {}".format(
-                                      base, offset, field.total_size))
+            raise NotImplementedError(
+                "cross-word bitfield! base {:#x} offset {} size {}".format(
+                    base, offset, field.total_size
+                )
+            )
 
         addr = _access_addr(field, base, (offset // size) * size)
         val = ACCESSORS[size](addr)
@@ -133,7 +156,9 @@ def _check_value_overflow(value, bits, signed):
             raise ValueError("{!r} doesn't fit in signed {}-bits!".format(value, bits))
     else:
         if not (0 <= value < (1 << bits)):
-            raise ValueError("{!r} doesn't fit in unsigned {}-bits!".format(value, bits))
+            raise ValueError(
+                "{!r} doesn't fit in unsigned {}-bits!".format(value, bits)
+            )
 
 
 def _write_accessor(field, base, offset, value):
@@ -180,7 +205,9 @@ class Ptr(object):
         return _read_accessor(self._type, self.____ptr, key * self._type.total_size)
 
     def __setitem__(self, key, value):
-        return _write_accessor(self._type, self.____ptr, key * self._type.total_size, value)
+        return _write_accessor(
+            self._type, self.____ptr, key * self._type.total_size, value
+        )
 
     def __eq__(self, other):
         if not isinstance(other, Ptr):
@@ -219,28 +246,39 @@ class ArrayPtr(object):
 
     def __check_index(self, key):
         if self._num_elem and not (0 <= key < self._num_elem):
-            raise IndexError("Index {!r} not in range: 0 - {!r}".format(key, self._num_elem - 1))
+            raise IndexError(
+                "Index {!r} not in range: 0 - {!r}".format(key, self._num_elem - 1)
+            )
 
     def __getitem__(self, key):
         self.__check_index(key)
-        return _read_accessor(self._elem_type, self.____ptr, key * self._elem_type.total_size)
+        return _read_accessor(
+            self._elem_type, self.____ptr, key * self._elem_type.total_size
+        )
 
     def __setitem__(self, key, value):
         self.__check_index(key)
-        return _write_accessor(self._elem_type, self.____ptr, key * self._elem_type.total_size, value)
+        return _write_accessor(
+            self._elem_type, self.____ptr, key * self._elem_type.total_size, value
+        )
 
     def __eq__(self, other):
         if not isinstance(other, ArrayPtr):
             return NotImplemented
 
-        return (self.____ptr == other.____ptr and self._num_elem == other._num_elem and
-                self._elem_type == other._elem_type)
+        return (
+            self.____ptr == other.____ptr
+            and self._num_elem == other._num_elem
+            and self._elem_type == other._elem_type
+        )
 
     def __len__(self):
         return self._num_elem
 
     def __repr__(self):
-        return "ArrayPtr(0x{:x}, {!r}, {!r})".format(self.____ptr, self._num_elem, self._elem_type)
+        return "ArrayPtr(0x{:x}, {!r}, {!r})".format(
+            self.____ptr, self._num_elem, self._elem_type
+        )
 
     def __int__(self):
         return self.____ptr
@@ -254,8 +292,8 @@ class ArrayPtr(object):
         if self._elem_type == ArrayPtr.CHAR_TYPE:
             # special case: if type is "char", convert to string
             s = "".join(map(chr, items))
-            if s.find('\x00') != -1:
-                s = s[:s.find('\x00')]
+            if s.find("\x00") != -1:
+                s = s[: s.find("\x00")]
             return s
         else:
             return items
@@ -303,8 +341,9 @@ class StructPtr(object):
         if not isinstance(other, StructPtr):
             return NotImplemented
 
-        return (_get_sp_struct(self) == _get_sp_struct(other)
-                and _get_sp_ptr(self) == _get_sp_ptr(other))
+        return _get_sp_struct(self) == _get_sp_struct(other) and _get_sp_ptr(
+            self
+        ) == _get_sp_ptr(other)
 
     def __int__(self):
         return _get_sp_ptr(self)
@@ -366,12 +405,11 @@ def is_struct_type(sp, struct):
 
 
 def dump_struct(sp, levels=1, indent=0):
-
     def _print_indented(s):
-        print(' ' * indent + s)
+        print(" " * indent + s)
 
     def _print_field_simple(field, val):
-        _print_indented(field + ' = ' + str(val))
+        _print_indented(field + " = " + str(val))
 
     fields = sp.____struct.fields
     ordered_fields = sorted(fields.keys(), key=lambda k: fields[k][0])
@@ -380,21 +418,24 @@ def dump_struct(sp, levels=1, indent=0):
         try:
             val = getattr(sp, field)
         except Exception as e:
-            print(' ' * indent + field + ' : ' + repr(e))
+            print(" " * indent + field + " : " + repr(e))
             continue
 
         # is it a struct?
-        if (isinstance(val, StructPtr)
+        if (
+            isinstance(val, StructPtr)
             # and not pointing to same type (probably a list of some sort...)
             and not is_struct_type(val, fields[field][1])
             # and we should go deeper
             and levels > 0
             # and not NULL
-           and val.____ptr != 0):
-
+            and val.____ptr != 0
+        ):
             _print_field_simple(field, val)
             dump_struct(val, levels=levels - 1, indent=indent + 4)
         elif isinstance(fields[field][1], Scalar):
-            _print_indented(fields[field][1].type + ' ' + field + ' = ' + str(val) + ' ' + hex(val))
+            _print_indented(
+                fields[field][1].type + " " + field + " = " + str(val) + " " + hex(val)
+            )
         else:
             _print_field_simple(field, val)

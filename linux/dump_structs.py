@@ -23,10 +23,16 @@ def run_make(struct, output, wd):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Dump the layout of kernel structs")
     parser.add_argument("output", help="output file")
-    parser.add_argument("--struct", help="name of the struct to dump (e.g 'sk_buff')."
-                                         " leave empty for *all* structs from processed files")
-    parser.add_argument("--header", help="header file to include for this struct"
-                                         " (e.g 'linux/skbuff.h'). leave empty for *all* headers")
+    parser.add_argument(
+        "--struct",
+        help="name of the struct to dump (e.g 'sk_buff')."
+        " leave empty for *all* structs from processed files",
+    )
+    parser.add_argument(
+        "--header",
+        help="header file to include for this struct"
+        " (e.g 'linux/skbuff.h'). leave empty for *all* headers",
+    )
 
     args = parser.parse_args()
 

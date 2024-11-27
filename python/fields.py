@@ -63,11 +63,16 @@ class Scalar(Type):
         if not isinstance(other, Scalar):
             return NotImplemented
 
-        return (self.type == other.type and self.signed == other.signed
-                and super(Scalar, self).__eq__(other))
+        return (
+            self.type == other.type
+            and self.signed == other.signed
+            and super(Scalar, self).__eq__(other)
+        )
 
     def __repr__(self):
-        return "Scalar({!r}, {!r}, {!r})".format(self.total_size, self.type, self.signed)
+        return "Scalar({!r}, {!r}, {!r})".format(
+            self.total_size, self.type, self.signed
+        )
 
 
 class StructField(Type):
@@ -109,7 +114,9 @@ class Pointer(Type):
         if not isinstance(other, Pointer):
             return NotImplemented
 
-        return self.pointed_type == other.pointed_type and super(Pointer, self).__eq__(other)
+        return self.pointed_type == other.pointed_type and super(Pointer, self).__eq__(
+            other
+        )
 
     def __repr__(self):
         return "Pointer({!r}, {!r})".format(self.total_size, self.pointed_type)
@@ -125,11 +132,16 @@ class Array(Type):
         if not isinstance(other, Array):
             return NotImplemented
 
-        return (self.num_elem == other.num_elem and self.elem_type == other.elem_type
-                and super(Array, self).__eq__(other))
+        return (
+            self.num_elem == other.num_elem
+            and self.elem_type == other.elem_type
+            and super(Array, self).__eq__(other)
+        )
 
     def __repr__(self):
-        return "Array({!r}, {!r}, {!r})".format(self.total_size, self.num_elem, self.elem_type)
+        return "Array({!r}, {!r}, {!r})".format(
+            self.total_size, self.num_elem, self.elem_type
+        )
 
 
 class Struct(Type):
@@ -142,8 +154,11 @@ class Struct(Type):
         if type(other) is not type(self):
             return NotImplemented
 
-        return (self.name == other.name and self.fields == other.fields
-                and super(Struct, self).__eq__(other))
+        return (
+            self.name == other.name
+            and self.fields == other.fields
+            and super(Struct, self).__eq__(other)
+        )
 
     def __repr__(self):
         # fields are too much, don't print them

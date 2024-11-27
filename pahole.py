@@ -14,12 +14,16 @@ def pahole_struct(s):
         ofs, entry = v
         # we assume the dicts are ordered (python 3.7+), but let's ensure it here...
         # do allow multiple fields on the same offsets - these are unions
-        assert cur <= ofs or ofs == prev_ofs, (f"ordered dict or what, in {s.name}, {prev_field}"
-                                               f" was at {prev_ofs} but now {k} is at {ofs}")
+        assert cur <= ofs or ofs == prev_ofs, (
+            f"ordered dict or what, in {s.name}, {prev_field}"
+            f" was at {prev_ofs} but now {k} is at {ofs}"
+        )
 
         if cur != ofs:
-            print(f"{s.name}: {prev_field} at {prev_ofs} with size {prev_size}, followed by {k} at"
-                  f" {ofs} size {entry.total_size}")
+            print(
+                f"{s.name}: {prev_field} at {prev_ofs} with size {prev_size}, followed by {k} at"
+                f" {ofs} size {entry.total_size}"
+            )
             cur = ofs
 
         cur += entry.total_size

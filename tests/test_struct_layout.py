@@ -2,16 +2,29 @@ import os.path
 import subprocess
 import tempfile
 
-from python.fields import (Scalar, Bitfield, Pointer, Void, Function, Array, StructField, Struct)
+from python.fields import (
+    Scalar,
+    Bitfield,
+    Pointer,
+    Void,
+    Function,
+    Array,
+    StructField,
+    Struct,
+)
 
 
 STRUCT_LAYOUT_SO = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "struct_layout.so"))
+    os.path.join(os.path.dirname(__file__), "..", "struct_layout.so")
+)
 
 
 def run_gcc(code_path, output_path, struct_name):
-    args = ["gcc", "-fplugin={}".format(STRUCT_LAYOUT_SO),
-            "-fplugin-arg-struct_layout-output={}".format(output_path)]
+    args = [
+        "gcc",
+        "-fplugin={}".format(STRUCT_LAYOUT_SO),
+        "-fplugin-arg-struct_layout-output={}".format(output_path),
+    ]
     if struct_name:
         args.append("-fplugin-arg-struct_layout-struct={}".format(struct_name))
     args += ["-c", "-o", "/dev/null", "-x", "c", code_path]
@@ -26,11 +39,16 @@ def dump_struct_layout(struct_code, struct_name):
 
         run_gcc(tf1.name, tf2.name, struct_name)
 
-        load_globals = {"Scalar": Scalar, "Bitfield": Bitfield, "Void": Void, "Function": Function,
-                        "StructField": StructField,
-                        "Pointer": Pointer, "Array": Array,
-                        "Struct": Struct,
-                        }
+        load_globals = {
+            "Scalar": Scalar,
+            "Bitfield": Bitfield,
+            "Void": Void,
+            "Function": Function,
+            "StructField": StructField,
+            "Pointer": Pointer,
+            "Array": Array,
+            "Struct": Struct,
+        }
         struct_def = tf2.read()
         print(struct_def)  # for debugging
         # hehe :(
@@ -46,11 +64,16 @@ def test_struct_basic():
 
 
 def test_struct_pointer():
-    s = dump_struct_layout("struct x { void *p; void **h; const int ***z; };", "x")["x"].fields
+    s = dump_struct_layout("struct x { void *p; void **h; const int ***z; };", "x")[
+        "x"
+    ].fields
     assert len(s.keys()) == 3
     assert s["p"] == (0, Pointer(64, Void()))
     assert s["h"] == (64, Pointer(64, Pointer(64, Void())))
-    assert s["z"] == (128, Pointer(64, Pointer(64, Pointer(64, Scalar(32, "int", True)))))
+    assert s["z"] == (
+        128,
+        Pointer(64, Pointer(64, Pointer(64, Scalar(32, "int", True)))),
+    )
 
 
 def test_struct_array():
@@ -63,7 +86,10 @@ def test_struct_array():
 def test_struct_array_two_dimensions():
     s = dump_struct_layout("struct x { int arr[5][2]; };", "x")["x"].fields
     assert len(s.keys()) == 1
-    assert s["arr"] == (0, Array(5 * 2 * 32, 5, Array(2 * 32, 2, Scalar(32, "int", True))))
+    assert s["arr"] == (
+        0,
+        Array(5 * 2 * 32, 5, Array(2 * 32, 2, Scalar(32, "int", True))),
+    )
 
 
 def test_struct_array_flexible_and_zero():
@@ -79,15 +105,18 @@ def test_struct_array_flexible_and_zero():
 
 
 def test_struct_struct():
-    s = (dump_struct_layout("struct a { int x; }; struct b { struct a aa; int xx; };", "b")
-         ["b"].fields)
+    s = dump_struct_layout(
+        "struct a { int x; }; struct b { struct a aa; int xx; };", "b"
+    )["b"].fields
     assert len(s.keys()) == 2
     assert s["aa"] == (0, StructField(32, "a"))
     assert s["xx"] == (32, Scalar(32, "int", True))
 
 
 def test_struct_union():
-    structs = dump_struct_layout("union u { int x; signed char c; long l; }; struct c { union u u; };", "c")
+    structs = dump_struct_layout(
+        "union u { int x; signed char c; long l; }; struct c { union u u; };", "c"
+    )
 
     c = structs["c"].fields
     assert len(c.keys()) == 1
@@ -145,8 +174,10 @@ def test_struct_dump_all():
 
 
 def test_struct_bitfields():
-    x = (dump_struct_layout("struct x { int bf1: 3; int:5; int bf2: 1; int n; int bf3: 29; unsigned int bf4: 1; };", "x")
-         ["x"].fields)
+    x = dump_struct_layout(
+        "struct x { int bf1: 3; int:5; int bf2: 1; int n; int bf3: 29; unsigned int bf4: 1; };",
+        "x",
+    )["x"].fields
 
     assert len(x.keys()) == 5
     assert x["bf1"] == (0, Bitfield(3, True))
@@ -172,7 +203,8 @@ def test_struct_anonymous_enum():
 
 def test_struct_typedefs():
     structs = dump_struct_layout(
-        "struct s { int y; }; typedef struct s s_t; struct x { s_t s1; };", None)
+        "struct s { int y; }; typedef struct s s_t; struct x { s_t s1; };", None
+    )
 
     assert len(structs.keys()) == 2
     x = structs["x"].fields
@@ -182,7 +214,8 @@ def test_struct_typedefs():
     assert "s_t" not in structs
 
     structs = dump_struct_layout(
-        "typedef struct { int y; } s_t; struct x { s_t s1; };", None)
+        "typedef struct { int y; } s_t; struct x { s_t s1; };", None
+    )
 
     assert len(structs.keys()) == 2
     x = structs["x"].fields
@@ -191,8 +224,12 @@ def test_struct_typedefs():
     assert "s_t" in structs
 
     # also for enums, they have special treatment
-    x = dump_struct_layout("typedef enum { y = 1, } e_t; struct x { e_t e1; };", "x")["x"].fields
+    x = dump_struct_layout("typedef enum { y = 1, } e_t; struct x { e_t e1; };", "x")[
+        "x"
+    ].fields
     assert x["e1"] == (0, Scalar(32, "e_t", False))
 
-    x = dump_struct_layout("typedef enum e { y = 1, } e_t; struct x { e_t e1; };", "x")["x"].fields
+    x = dump_struct_layout("typedef enum e { y = 1, } e_t; struct x { e_t e1; };", "x")[
+        "x"
+    ].fields
     assert x["e1"] == (0, Scalar(32, "e", False))
