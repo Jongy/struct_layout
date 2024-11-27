@@ -26,3 +26,6 @@ test: $(PLUGIN)
 
 clean:
 	rm -f $(PLUGIN) all.py
+
+format:
+	python3 -m ruff format
