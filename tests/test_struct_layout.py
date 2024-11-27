@@ -87,7 +87,7 @@ def test_struct_struct():
 
 
 def test_struct_union():
-    structs = dump_struct_layout("union u { int x; char c; long l; }; struct c { union u u; };", "c")
+    structs = dump_struct_layout("union u { int x; signed char c; long l; }; struct c { union u u; };", "c")
 
     c = structs["c"].fields
     assert len(c.keys()) == 1
@@ -98,7 +98,8 @@ def test_struct_union():
     u = u.fields
     assert len(u.keys()) == 3
     assert u["x"] == (0, Scalar(32, "int", True))
-    assert u["c"] == (0, Scalar(8, "char", True))
+    # "signed" for stability across different arches where "char" has different signedness
+    assert u["c"] == (0, Scalar(8, "signed char", True))
     assert u["l"] == (0, Scalar(64, "long int", True))
 
 
