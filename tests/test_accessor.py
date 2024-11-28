@@ -283,6 +283,27 @@ def test_accessor_set_pointer():
     assert s.ptr[0] == s.x
 
 
+@pytest.mark.parametrize(
+    "type_, ptr_type",
+    [
+        ("int *ptr", Ptr),
+        ("int (*ptr)[2]", ArrayPtr),
+        ("struct y *ptr", StructPtr),
+    ],
+)
+def test_accessor_null_bool(type_: str, ptr_type):
+    s = partial_struct(
+        dump_struct_layout(f"struct y {{ }}; struct x {{ {type_};  }};", "x")["x"]
+    )(MEM_BASE)
+    assert isinstance(s.ptr, ptr_type)
+
+    set_memory_struct(">Q", 0)
+    assert not s.ptr
+
+    set_memory_struct(">Q", 1)
+    assert s.ptr
+
+
 def test_accessor_set_invalid():
     set_memory_struct("")
 

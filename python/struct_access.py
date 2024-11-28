@@ -221,6 +221,9 @@ class Ptr(object):
     def __int__(self):
         return self.____ptr
 
+    def __bool__(self):
+        return self.____ptr != 0
+
     def __add__(self, other):
         if not isinstance(other, int):
             return NotImplemented
@@ -282,6 +285,9 @@ class ArrayPtr(object):
 
     def __int__(self):
         return self.____ptr
+
+    def __bool__(self):
+        return self.____ptr != 0
 
     def read(self, n=None):
         n = n if n is not None else self._num_elem
@@ -347,6 +353,9 @@ class StructPtr(object):
 
     def __int__(self):
         return _get_sp_ptr(self)
+
+    def __bool__(self):
+        return _get_sp_ptr(self) != 0
 
     def __repr__(self):
         return "StructPtr(0x{:x}, {!r})".format(_get_sp_ptr(self), _get_sp_struct(self))
